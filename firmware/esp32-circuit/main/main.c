@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 
 #define LED_TEST  GPIO_NUM_32
 #define LED_RED 1
@@ -43,5 +46,8 @@ void app_main(void)
     // ------ SUPERLOOP ------
     while(1){
         gpio_set_level(LED_TEST, HIGH);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        gpio_set_level(LED_TEST, LOW);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
