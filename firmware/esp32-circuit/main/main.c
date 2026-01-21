@@ -21,13 +21,11 @@
  * -------------------------------------------------
  */
 
-#define LED_TEST GPIO_NUM_32
-#define LED_RED 1
-#define LED_GREEN 2
-#define LED_YELLOW 3
-#define CHANGE_BUTTON 1
-#define OFF_BUTTON 2
-#define TEST_BUTTON GPIO_NUM_26
+#define LED_RED GPIO_NUM_25
+#define LED_GREEN GPIO_NUM_32
+#define LED_YELLOW GPIO_NUM_33
+#define CHANGE_BUTTON GPIO_NUM_26
+#define OFF_BUTTON GPIO_NUM_27
 #define ESP_INTR_FLAG_DEFAULT 0
 
 #define LOW 0
@@ -58,20 +56,21 @@ esp_err_t leds_config();
  * FUNCIONES INTERRUPCIONES
  * -------------------------------------------------
  */
-void IRAM_ATTR gpio_isr_button_handler() // Manejador de interrupcion
-{
-    switch (currentState)
-    {
-    case performance:
+static void IRAM_ATTR gpio_isr_change_button_handler(void* args) // Manejador de interrupcion
+{   
+    if(currentState == performance){
         currentState = configuration;
-        break;
-    case configuration:
+    }else if(currentState == configuration){
         currentState = performance;
-        break;
-    default:
-        break;
+    }else{
+        currentState = performance;
     }
 }
+
+static void IRAM_ATTR gpio_isr_off_button_handler(void* args){
+    currentState = off;
+}
+
 
 /**
  * -------------------------------------------------
@@ -90,20 +89,19 @@ void app_main(void)
         switch (currentState)
         {
         case performance:
-            // set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
-            gpio_set_level(LED_TEST, HIGH);
+            set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
             break;
         case configuration:
-            // set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
-            gpio_set_level(LED_TEST, LOW);
+            set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
             break;
         case off:
-            // set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
+            set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
             break;
         default:
             currentState = off;
             break;
         }
+        vTaskDelay(100/portTICK_PERIOD_MS);
     }
 }
 
@@ -122,7 +120,7 @@ esp_err_t leds_config()
     // Configuracion de pines
     gpio_config_t out_pin = {};
     out_pin.intr_type = GPIO_INTR_DISABLE;
-    out_pin.pin_bit_mask = (1ULL << LED_TEST); //| 1ULL << LED_RED | 1ULL << LED_GREEN | 1ULL << LED_YELLOW);
+    out_pin.pin_bit_mask = (1ULL << LED_RED | 1ULL << LED_GREEN | 1ULL << LED_YELLOW);
     out_pin.mode = GPIO_MODE_OUTPUT;
     out_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
     out_pin.pull_up_en = GPIO_PULLUP_DISABLE;
@@ -134,23 +132,17 @@ esp_err_t button_config()
     // Configuracion de pines
     esp_err_t err;
     gpio_config_t input_pin = {};
-    input_pin.intr_type = GPIO_INTR_NEGEDGE;
-    input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON | 1ULL << TEST_BUTTON);
+    input_pin.intr_type = GPIO_INTR_LOW_LEVEL;
+    input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON);
     input_pin.mode = GPIO_MODE_INPUT;
     input_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
     input_pin.pull_up_en = GPIO_PULLUP_ENABLE;
     err = gpio_config(&input_pin);
 
-    if (err == ESP_OK)
-    {
-        // Configuracion de interrupciones
-        gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-        gpio_isr_handler_add(TEST_BUTTON, gpio_isr_button_handler, NULL);
-        //gpio_isr_handler_add(CHANGE_BUTTON, gpio_isr_button_handler, (void *)CHANGE_BUTTON);
-        //gpio_isr_handler_add(OFF_BUTTON, gpio_isr_button_handler, (void *)OFF_BUTTON);
-    }
-
-    return err;
+    // Configuracion de interrupciones
+    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+    gpio_isr_handler_add(CHANGE_BUTTON, gpio_isr_change_button_handler, NULL);
+    gpio_isr_handler_add(OFF_BUTTON, gpio_isr_off_button_handler, NULL);
 }
 
 uint32_t button_pressed(uint32_t button)
