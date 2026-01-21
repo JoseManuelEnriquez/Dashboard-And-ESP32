@@ -25,9 +25,8 @@
 #define LED_RED 1
 #define LED_GREEN 2
 #define LED_YELLOW 3
-#define CHANGE_BUTTON 1
+#define CHANGE_BUTTON GPIO_NUM_26
 #define OFF_BUTTON 2
-#define TEST_BUTTON GPIO_NUM_26
 #define ESP_INTR_FLAG_DEFAULT 0
 
 #define LOW 0
@@ -58,11 +57,21 @@ void leds_config();
  * FUNCIONES INTERRUPCIONES
  * -------------------------------------------------
  */
-static void IRAM_ATTR gpio_isr_button_handler(void* args) // Manejador de interrupcion
+static void IRAM_ATTR gpio_isr_change_button_handler(void* args) // Manejador de interrupcion
 {   
-    uint32_t io_num = (uint32_t) args;
-    currentState = performance;
+    if(currentState == performance){
+        currentState = configuration;
+    }else if(currentState == configuration){
+        currentState = performance;
+    }else{
+        currentState = performance;
+    }
 }
+
+static void IRAM_ATTR gpio_isr_off_button_handler(void* args){
+    currentState = off;
+}
+
 
 /**
  * -------------------------------------------------
@@ -93,8 +102,10 @@ void app_main(void)
             break;
         default:
             currentState = off;
+            gpio_set_level(LED_TEST, HIGH);
             break;
         }
+        vTaskDelay(100/portTICK_PERIOD_MS);
     }
 }
 
@@ -122,8 +133,8 @@ void leds_config(){
 void button_config(){
     // Configuracion de pines
     gpio_config_t input_pin = {};
-    input_pin.intr_type = GPIO_INTR_NEGEDGE;
-    input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON | 1ULL << TEST_BUTTON);
+    input_pin.intr_type = GPIO_INTR_LOW_LEVEL;
+    input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON);
     input_pin.mode = GPIO_MODE_INPUT;
     input_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
     input_pin.pull_up_en = GPIO_PULLUP_ENABLE;
@@ -131,8 +142,8 @@ void button_config(){
 
     // Configuracion de interrupciones
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-    gpio_isr_handler_add(CHANGE_BUTTON, gpio_isr_button_handler, (void *)CHANGE_BUTTON);
-    gpio_isr_handler_add(OFF_BUTTON, gpio_isr_button_handler, (void *)OFF_BUTTON);
+    gpio_isr_handler_add(CHANGE_BUTTON, gpio_isr_change_button_handler, NULL);
+    gpio_isr_handler_add(OFF_BUTTON, gpio_isr_off_button_handler, NULL);
 }
 
 uint32_t button_pressed(uint32_t button)
