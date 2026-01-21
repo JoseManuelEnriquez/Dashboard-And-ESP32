@@ -21,12 +21,11 @@
  * -------------------------------------------------
  */
 
-#define LED_TEST GPIO_NUM_32
-#define LED_RED 1
-#define LED_GREEN 2
-#define LED_YELLOW 3
+#define LED_RED GPIO_NUM_25
+#define LED_GREEN GPIO_NUM_32
+#define LED_YELLOW GPIO_NUM_33
 #define CHANGE_BUTTON GPIO_NUM_26
-#define OFF_BUTTON 2
+#define OFF_BUTTON GPIO_NUM_27
 #define ESP_INTR_FLAG_DEFAULT 0
 
 #define LOW 0
@@ -90,19 +89,16 @@ void app_main(void)
         switch (currentState)
         {
         case performance:
-            //set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
-            gpio_set_level(LED_TEST, HIGH);
+            set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
             break;
         case configuration:
-            //set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
-            gpio_set_level(LED_TEST, LOW);
+            set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
             break;
         case off:
-            //set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
+            set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
             break;
         default:
             currentState = off;
-            gpio_set_level(LED_TEST, HIGH);
             break;
         }
         vTaskDelay(100/portTICK_PERIOD_MS);
@@ -123,7 +119,7 @@ void leds_config(){
     // Configuracion de pines
     gpio_config_t out_pin = {};
     out_pin.intr_type = GPIO_INTR_DISABLE;
-    out_pin.pin_bit_mask = (1ULL << LED_TEST); //| 1ULL << LED_RED | 1ULL << LED_GREEN | 1ULL << LED_YELLOW);
+    out_pin.pin_bit_mask = (1ULL << LED_RED | 1ULL << LED_GREEN | 1ULL << LED_YELLOW);
     out_pin.mode = GPIO_MODE_OUTPUT;
     out_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
     out_pin.pull_up_en = GPIO_PULLUP_DISABLE;
