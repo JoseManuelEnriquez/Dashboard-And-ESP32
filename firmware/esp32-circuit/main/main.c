@@ -40,7 +40,7 @@ typedef enum
     off
 } State_t;
 
-State_t currentState = off;                 // variable global que controla en que modo trabaja el circuito
+State_t currentState = off; // variable global que controla en que modo trabaja el circuito
 
 /**
  * -------------------------------------------------
@@ -50,18 +50,27 @@ State_t currentState = off;                 // variable global que controla en q
 void debug_io(uint64_t io);
 uint32_t button_pressed(uint32_t button);
 void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
-void button_config();
-void leds_config();
+esp_err_t button_config();
+esp_err_t leds_config();
 
 /**
  * -------------------------------------------------
  * FUNCIONES INTERRUPCIONES
  * -------------------------------------------------
  */
-static void IRAM_ATTR gpio_isr_button_handler(void* args) // Manejador de interrupcion
-{   
-    uint32_t io_num = (uint32_t) args;
-    currentState = performance;
+void IRAM_ATTR gpio_isr_button_handler() // Manejador de interrupcion
+{
+    switch (currentState)
+    {
+    case performance:
+        currentState = configuration;
+        break;
+    case configuration:
+        currentState = performance;
+        break;
+    default:
+        break;
+    }
 }
 
 /**
@@ -81,15 +90,15 @@ void app_main(void)
         switch (currentState)
         {
         case performance:
-            //set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
+            // set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
             gpio_set_level(LED_TEST, HIGH);
             break;
         case configuration:
-            //set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
+            // set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
             gpio_set_level(LED_TEST, LOW);
             break;
         case off:
-            //set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
+            // set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
             break;
         default:
             currentState = off;
@@ -108,7 +117,8 @@ void debug_io(uint64_t io)
     gpio_dump_io_configuration(stdout, io);
 }
 
-void leds_config(){
+esp_err_t leds_config()
+{
     // Configuracion de pines
     gpio_config_t out_pin = {};
     out_pin.intr_type = GPIO_INTR_DISABLE;
@@ -116,23 +126,31 @@ void leds_config(){
     out_pin.mode = GPIO_MODE_OUTPUT;
     out_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
     out_pin.pull_up_en = GPIO_PULLUP_DISABLE;
-    gpio_config(&out_pin);
+    return gpio_config(&out_pin);
 }
 
-void button_config(){
+esp_err_t button_config()
+{
     // Configuracion de pines
+    esp_err_t err;
     gpio_config_t input_pin = {};
     input_pin.intr_type = GPIO_INTR_NEGEDGE;
     input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON | 1ULL << TEST_BUTTON);
     input_pin.mode = GPIO_MODE_INPUT;
     input_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
     input_pin.pull_up_en = GPIO_PULLUP_ENABLE;
-    gpio_config(&input_pin);
+    err = gpio_config(&input_pin);
 
-    // Configuracion de interrupciones
-    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-    gpio_isr_handler_add(CHANGE_BUTTON, gpio_isr_button_handler, (void *)CHANGE_BUTTON);
-    gpio_isr_handler_add(OFF_BUTTON, gpio_isr_button_handler, (void *)OFF_BUTTON);
+    if (err == ESP_OK)
+    {
+        // Configuracion de interrupciones
+        gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+        gpio_isr_handler_add(TEST_BUTTON, gpio_isr_button_handler, NULL);
+        //gpio_isr_handler_add(CHANGE_BUTTON, gpio_isr_button_handler, (void *)CHANGE_BUTTON);
+        //gpio_isr_handler_add(OFF_BUTTON, gpio_isr_button_handler, (void *)OFF_BUTTON);
+    }
+
+    return err;
 }
 
 uint32_t button_pressed(uint32_t button)
