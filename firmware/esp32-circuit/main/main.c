@@ -88,28 +88,38 @@ void app_main(void)
     init_io();
     
     // ------ INTERRUPTION ------
+    
+    /*
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-    gpio_isr_handle_add(CHANGE_BUTTON, gpio_isr_handler, (void*) CHANGE_BUTTON);
-    gpio_isr_handle_add(OFF_BUTTON, gpio_isr_handler, (void*) OFF_BUTTON);
+    gpio_isr_handler_add(CHANGE_BUTTON, gpio_isr_handler, (void*)CHANGE_BUTTON);
+    gpio_isr_handler_add(OFF_BUTTON, gpio_isr_handler, (void*)OFF_BUTTON);
+    */
 
     // ------ SUPERLOOP ------
     while (1)
     {
-        switch (currentState)
-        {
-        case performance:
-            set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
-            break;
-        case configuration:
-            set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
-            break;
-        case off:
-            set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
-            break;
-        default:
-            currentState = off;
-            break;
+        if(!button_pressed(TEST_BUTTON)){
+            switch (currentState)
+            {
+            case performance:
+                set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
+                gpio_set_level(LED_TEST, HIGH);
+                currentState = configuration;
+                break;
+            case configuration:
+                set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
+                gpio_set_level(LED_TEST, LOW);
+                currentState = performance;
+                break;
+            case off:
+                set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
+                currentState = performance;
+                break;
+            default:
+                currentState = off;
+                break;
+            }
         }
     }
 }
@@ -135,7 +145,7 @@ void init_io()
     out_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
     out_pin.pull_up_en = GPIO_PULLUP_DISABLE;
 
-    input_pin.intr_type = GPIO_INTR_NEGEDGE;
+    input_pin.intr_type = GPIO_INTR_DISABLE;
     input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON | 1ULL << TEST_BUTTON);
     input_pin.mode = GPIO_MODE_INPUT;
     input_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
