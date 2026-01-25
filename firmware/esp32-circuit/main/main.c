@@ -15,6 +15,8 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+
+
 /**
  * -------------------------------------------------
  * DEFINICIONES MACROS VARIABLES GLOBALES
@@ -38,7 +40,36 @@ typedef enum
     off
 } State_t;
 
-State_t currentState = off; // variable global que controla en que modo trabaja el circuito
+/**
+ * -------------------------------------------------
+ * FUNCIONES DE TAREAS freeRTOS
+ * -------------------------------------------------
+ */
+
+void vControl_FSMTask(void* pvParameters){
+
+    static State_t currentState;
+
+    for(;;){
+        switch (currentState)
+        {
+        case performance:
+            set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
+            break;
+        case configuration:
+            set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
+            break;
+        case off:
+            set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
+            break;
+        default:
+            currentState = off;
+            break;
+        }
+        vTaskDelay(3000/portTICK_PERIOD_MS);
+    }
+    vTaskDelete(NULL);
+}
 
 /**
  * -------------------------------------------------
@@ -58,17 +89,10 @@ esp_err_t leds_config();
  */
 static void IRAM_ATTR gpio_isr_change_button_handler(void* args) // Manejador de interrupcion
 {   
-    if(currentState == performance){
-        currentState = configuration;
-    }else if(currentState == configuration){
-        currentState = performance;
-    }else{
-        currentState = performance;
-    }
+    
 }
 
 static void IRAM_ATTR gpio_isr_off_button_handler(void* args){
-    currentState = off;
 }
 
 
@@ -83,26 +107,9 @@ void app_main(void)
     leds_config();
     button_config();
 
-    // ------ SUPERLOOP ------
-    while (1)
-    {
-        switch (currentState)
-        {
-        case performance:
-            set_io_level(LOW, LOW, HIGH); // RED = OFF, YELLOW = OFF, GREEN = HIGH
-            break;
-        case configuration:
-            set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
-            break;
-        case off:
-            set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
-            break;
-        default:
-            currentState = off;
-            break;
-        }
-        vTaskDelay(100/portTICK_PERIOD_MS);
-    }
+    // ------ CREATION TASKS ------
+    xTaskCreate(vControl_FSMTask,"FSM Control Task", 512, NULL, 6, NULL);
+    for(;;);
 }
 
 /**
