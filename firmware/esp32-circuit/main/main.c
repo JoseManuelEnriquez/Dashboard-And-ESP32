@@ -16,7 +16,6 @@
 #include "freertos/queue.h"
 
 
-
 /**
  * -------------------------------------------------
  * DEFINICIONES MACROS VARIABLES GLOBALES
@@ -40,6 +39,20 @@ typedef enum
     off
 } State_t;
 
+static QueueHandle_t isr_handler_queue = NULL;
+static State_t currentState = off;
+
+/**
+ * -------------------------------------------------
+ * PROTOTIPO DE FUNCIONES
+ * -------------------------------------------------
+ */
+void debug_io(uint64_t io);
+uint32_t button_pressed(uint32_t button);
+void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
+esp_err_t button_config();
+esp_err_t leds_config();
+
 /**
  * -------------------------------------------------
  * FUNCIONES DE TAREAS freeRTOS
@@ -47,9 +60,6 @@ typedef enum
  */
 
 void vControl_FSMTask(void* pvParameters){
-
-    static State_t currentState;
-
     for(;;){
         switch (currentState)
         {
@@ -71,16 +81,25 @@ void vControl_FSMTask(void* pvParameters){
     vTaskDelete(NULL);
 }
 
-/**
- * -------------------------------------------------
- * PROTOTIPO DE FUNCIONES
- * -------------------------------------------------
- */
-void debug_io(uint64_t io);
-uint32_t button_pressed(uint32_t button);
-void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
-esp_err_t button_config();
-esp_err_t leds_config();
+static void vChangeStateTask(void* arg)
+{
+    uint32_t io_num;
+    for (;;) {
+        if (xQueueReceive(isr_handler_queue, &io_num, portMAX_DELAY)) {
+            if(io_num == OFF_BUTTON){
+                currentState = off;
+            }else{
+                if(currentState == performance){
+                    currentState = configuration;
+                }else{
+                    currentState = performance;
+                }
+            }
+        }
+    }
+}
+
+
 
 /**
  * -------------------------------------------------
@@ -89,10 +108,13 @@ esp_err_t leds_config();
  */
 static void IRAM_ATTR gpio_isr_change_button_handler(void* args) // Manejador de interrupcion
 {   
-    
+    uint32_t io_num = CHANGE_BUTTON;
+    xQueueSendFromISR(isr_handler_queue, &io_num, NULL);
 }
 
 static void IRAM_ATTR gpio_isr_off_button_handler(void* args){
+    uint32_t io_num = OFF_BUTTON;
+    xQueueSendFromISR(isr_handler_queue, &io_num, NULL); 
 }
 
 
@@ -106,9 +128,12 @@ void app_main(void)
     // ------ CONFIGURATION ------
     leds_config();
     button_config();
+    isr_handler_queue = xQueueCreate(10, sizeof(uint32_t)); // Crear cola para manejar interrupcion
 
     // ------ CREATION TASKS ------
     xTaskCreate(vControl_FSMTask,"FSM Control Task", 512, NULL, 6, NULL);
+    xTaskCreate(vChangeStateTask,"Change StateTask", 512, NULL, 7, NULL); // Creo la tarea para manejar interrupcione
+
     for(;;);
 }
 
@@ -150,6 +175,8 @@ esp_err_t button_config()
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
     gpio_isr_handler_add(CHANGE_BUTTON, gpio_isr_change_button_handler, NULL);
     gpio_isr_handler_add(OFF_BUTTON, gpio_isr_off_button_handler, NULL);
+
+    return err;
 }
 
 uint32_t button_pressed(uint32_t button)
