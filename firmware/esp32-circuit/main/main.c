@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include "driver/gpio.h"
+#include "DHT11.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -27,6 +28,7 @@
 #define LED_YELLOW GPIO_NUM_33
 #define CHANGE_BUTTON GPIO_NUM_26
 #define OFF_BUTTON GPIO_NUM_27
+#define DHT11_SENSOR 1
 #define ESP_INTR_FLAG_DEFAULT 0
 
 #define LOW 0
@@ -38,6 +40,12 @@ typedef enum
     configuration,
     off
 } State_t;
+
+typedef struct{
+    uint8_t humicity;
+    uint8_t temperature;
+    uint8_t light;
+}data_t;
 
 static QueueHandle_t isr_handler_queue = NULL;
 static State_t currentState = off;
@@ -99,7 +107,28 @@ static void vChangeStateTask(void* arg)
     }
 }
 
-
+void vReadSensorTask(void* pvParameters){
+    
+    data_t data = {};
+    uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
+    esp_err_t err;
+    for(;;){
+        switch(currentState){
+            case performance:
+            err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
+            if(err == ESP_OK){
+                data.humicity = humicity_int;
+                data.temperature = temperature_int;
+                // Despertar la tarea de mandar datos por MQTT mandando la estructura data 
+                vTaskDelay(3000/portTICK_PERIOD_MS);
+            }
+            case configuration:
+            // NIDEA QUE HACER AQUI
+            break;
+        }
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+}
 
 /**
  * -------------------------------------------------
@@ -132,9 +161,8 @@ void app_main(void)
 
     // ------ CREATION TASKS ------
     xTaskCreate(vControl_FSMTask,"FSM Control Task", 512, NULL, 6, NULL);
-    xTaskCreate(vChangeStateTask,"Change StateTask", 512, NULL, 7, NULL); // Creo la tarea para manejar interrupcione
-
-    for(;;);
+    xTaskCreate(vChangeStateTask,"Change StateTask", 2048, NULL, 8, NULL); // Creo la tarea para manejar interrupcione
+    xTaskCreate(vReadSensorTask,"Read Sensor Task", 2048, NULL, 7, NULL);
 }
 
 /**
@@ -164,7 +192,7 @@ esp_err_t button_config()
     // Configuracion de pines
     esp_err_t err;
     gpio_config_t input_pin = {};
-    input_pin.intr_type = GPIO_INTR_LOW_LEVEL;
+    input_pin.intr_type = GPIO_INTR_NEGEDGE;
     input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON);
     input_pin.mode = GPIO_MODE_INPUT;
     input_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
