@@ -2,7 +2,7 @@
  * @file main.c
  * @author Jose Manuel Enriquez Baena (joseenriquezbaena@gmail.com)
  * @brief Lectura de sensores y publicacion por MQTT
- * @version 1.0
+ * @version 1.1
  * @date 20-01-2026
  * * @copyright Copyright (c) 2026
  * */
@@ -15,7 +15,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
-
 
 /**
  * -------------------------------------------------
@@ -84,7 +83,7 @@ void vControl_FSMTask(void* pvParameters){
             currentState = off;
             break;
         }
-        vTaskDelay(3000/portTICK_PERIOD_MS);
+        vTaskDelay(100/portTICK_PERIOD_MS);
     }
     vTaskDelete(NULL);
 }
@@ -99,6 +98,8 @@ static void vChangeStateTask(void* arg)
             }else{
                 if(currentState == performance){
                     currentState = configuration;
+                }else if(currentState == configuration){
+                    currentState = performance;
                 }else{
                     currentState = performance;
                 }
@@ -109,7 +110,7 @@ static void vChangeStateTask(void* arg)
 
 void vReadSensorTask(void* pvParameters){
     
-    data_t data = {};
+    data_t data;
     uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
     esp_err_t err;
     for(;;){
@@ -122,8 +123,13 @@ void vReadSensorTask(void* pvParameters){
                 // Despertar la tarea de mandar datos por MQTT mandando la estructura data 
                 vTaskDelay(3000/portTICK_PERIOD_MS);
             }
+            break;
             case configuration:
             // NIDEA QUE HACER AQUI
+            break;
+            case off:
+            break;
+            default:
             break;
         }
         vTaskDelay(100/portTICK_PERIOD_MS);
@@ -144,8 +150,7 @@ static void IRAM_ATTR gpio_isr_change_button_handler(void* args) // Manejador de
 static void IRAM_ATTR gpio_isr_off_button_handler(void* args){
     uint32_t io_num = OFF_BUTTON;
     xQueueSendFromISR(isr_handler_queue, &io_num, NULL); 
-}
-
+}   
 
 /**
  * -------------------------------------------------
@@ -160,9 +165,10 @@ void app_main(void)
     isr_handler_queue = xQueueCreate(10, sizeof(uint32_t)); // Crear cola para manejar interrupcion
 
     // ------ CREATION TASKS ------
-    xTaskCreate(vControl_FSMTask,"FSM Control Task", 512, NULL, 6, NULL);
-    xTaskCreate(vChangeStateTask,"Change StateTask", 2048, NULL, 8, NULL); // Creo la tarea para manejar interrupcione
-    xTaskCreate(vReadSensorTask,"Read Sensor Task", 2048, NULL, 7, NULL);
+    xTaskCreate(vControl_FSMTask,"FSM Control Task", 2048, NULL, 6, NULL);
+    xTaskCreate(vChangeStateTask,"Change State Task", 4096, NULL, 8, NULL); // Creo la tarea para manejar interrupcione
+    xTaskCreate(vReadSensorTask,"Read Sensor Task", 4096, NULL, 7, NULL);
+
 }
 
 /**
@@ -192,7 +198,7 @@ esp_err_t button_config()
     // Configuracion de pines
     esp_err_t err;
     gpio_config_t input_pin = {};
-    input_pin.intr_type = GPIO_INTR_NEGEDGE;
+    input_pin.intr_type = GPIO_INTR_LOW_LEVEL;
     input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON);
     input_pin.mode = GPIO_MODE_INPUT;
     input_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
