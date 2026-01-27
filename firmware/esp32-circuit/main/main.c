@@ -2,7 +2,7 @@
  * @file main.c
  * @author Jose Manuel Enriquez Baena (joseenriquezbaena@gmail.com)
  * @brief Lectura de sensores y publicacion por MQTT
- * @version 1.1
+ * @version 1.2
  * @date 20-01-2026
  * * @copyright Copyright (c) 2026
  * */
@@ -67,14 +67,14 @@ esp_err_t leds_config();
  */
 
 void vMonitorTask(void *pvParameters) {
-    char buffer[400]; // Buffer para guardar la tabla
+    char buffer[400];
     for (;;) {
         printf("\n--- Task List ---\n");
         printf("Nombre          Estado  Prio  Stack   ID\n");
         vTaskList(buffer);
         printf("%s", buffer);
         printf("-----------------\n");
-        vTaskDelay(pdMS_TO_TICKS(5000)); // Cada 5 segundos
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
 
