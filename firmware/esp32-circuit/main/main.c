@@ -11,11 +11,11 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include "driver/gpio.h"
+#include "esp_log.h"
 #include "DHT11.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
-
 /**
  * -------------------------------------------------
  * DEFINICIONES MACROS VARIABLES GLOBALES
@@ -27,7 +27,7 @@
 #define LED_YELLOW GPIO_NUM_33
 #define CHANGE_BUTTON GPIO_NUM_26
 #define OFF_BUTTON GPIO_NUM_27
-#define DHT11_SENSOR 1
+#define DHT11_SENSOR GPIO_NUM_14
 #define ESP_INTR_FLAG_DEFAULT 0
 
 #define LOW 0
@@ -47,7 +47,8 @@ typedef struct{
 }data_t;
 
 static QueueHandle_t isr_handler_queue = NULL;
-static State_t currentState = off;
+static State_t currentState = performance;
+static const char* TAG_SENSOR = "SENSOR_TASK";
 
 /**
  * -------------------------------------------------
@@ -55,7 +56,6 @@ static State_t currentState = off;
  * -------------------------------------------------
  */
 void debug_io(uint64_t io);
-uint32_t button_pressed(uint32_t button);
 void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
 esp_err_t button_config();
 esp_err_t leds_config();
@@ -66,7 +66,20 @@ esp_err_t leds_config();
  * -------------------------------------------------
  */
 
-void vControl_FSMTask(void* pvParameters){
+void vMonitorTask(void *pvParameters) {
+    char buffer[400]; // Buffer para guardar la tabla
+    for (;;) {
+        printf("\n--- Task List ---\n");
+        printf("Nombre          Estado  Prio  Stack   ID\n");
+        vTaskList(buffer);
+        printf("%s", buffer);
+        printf("-----------------\n");
+        vTaskDelay(pdMS_TO_TICKS(5000)); // Cada 5 segundos
+    }
+}
+
+void vControl_FSMTask(void* pvParameters)
+{
     for(;;){
         switch (currentState)
         {
@@ -105,11 +118,13 @@ static void vChangeStateTask(void* arg)
                 }
             }
         }
+        vTaskDelay(100/portTICK_PERIOD_MS);
     }
+    vTaskDelete(NULL);
 }
 
-void vReadSensorTask(void* pvParameters){
-    
+void vReadSensorTask(void* pvParameters)
+{
     data_t data;
     uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
     esp_err_t err;
@@ -120,20 +135,33 @@ void vReadSensorTask(void* pvParameters){
             if(err == ESP_OK){
                 data.humicity = humicity_int;
                 data.temperature = temperature_int;
+                ESP_LOGI(TAG_SENSOR, "Lectura de humedad: %d | Lectura de temperatura: %d", data.humicity, data.temperature);
                 // Despertar la tarea de mandar datos por MQTT mandando la estructura data 
                 vTaskDelay(3000/portTICK_PERIOD_MS);
+            }else{
+                switch (err)
+                {
+                case ESP_ERR_INVALID_ARG: ESP_LOGE(TAG_SENSOR, "Argumentos invalidos\n");
+                break;
+                case ESP_ERR_INVALID_CRC: ESP_LOGE(TAG_SENSOR, "Error de checksum\n");
+                break;
+                case ESP_ERR_TIMEOUT: ESP_LOGE(TAG_SENSOR, "Error de timeout \n");
+                break;
+                default:
+                    break;
+                }
             }
             break;
             case configuration:
-            // NIDEA QUE HACER AQUI
             break;
             case off:
             break;
             default:
             break;
         }
-        vTaskDelay(100/portTICK_PERIOD_MS);
+        vTaskDelay(2000/portTICK_PERIOD_MS);
     }
+    vTaskDelete(NULL);
 }
 
 /**
@@ -162,13 +190,14 @@ void app_main(void)
     // ------ CONFIGURATION ------
     leds_config();
     button_config();
+    dht11_init(DHT11_SENSOR);
     isr_handler_queue = xQueueCreate(10, sizeof(uint32_t)); // Crear cola para manejar interrupcion
 
     // ------ CREATION TASKS ------
-    xTaskCreate(vControl_FSMTask,"FSM Control Task", 2048, NULL, 6, NULL);
-    xTaskCreate(vChangeStateTask,"Change State Task", 4096, NULL, 8, NULL); // Creo la tarea para manejar interrupcione
-    xTaskCreate(vReadSensorTask,"Read Sensor Task", 4096, NULL, 7, NULL);
-
+    xTaskCreate(vControl_FSMTask,"FSM Control Task", 2048, NULL, 8, NULL); // Tarea que controla los estados del fsm
+    xTaskCreate(vChangeStateTask,"Change State Task", 4096, NULL, 10, NULL); // Tarea que la isr despierta para cambiar de estado
+    xTaskCreate(vReadSensorTask,"Read Sensor Task", 4096, NULL, 9, NULL); // Tarea que dependiendo del modo, lee el sensor o no
+    xTaskCreate(vMonitorTask,"Monitor Task",4096, NULL, 10, NULL);// Tarea para DEBUG
 }
 
 /**
@@ -198,7 +227,7 @@ esp_err_t button_config()
     // Configuracion de pines
     esp_err_t err;
     gpio_config_t input_pin = {};
-    input_pin.intr_type = GPIO_INTR_LOW_LEVEL;
+    input_pin.intr_type = GPIO_INTR_NEGEDGE;
     input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON);
     input_pin.mode = GPIO_MODE_INPUT;
     input_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
@@ -211,11 +240,6 @@ esp_err_t button_config()
     gpio_isr_handler_add(OFF_BUTTON, gpio_isr_off_button_handler, NULL);
 
     return err;
-}
-
-uint32_t button_pressed(uint32_t button)
-{
-    return gpio_get_level(button);
 }
 
 void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green)
