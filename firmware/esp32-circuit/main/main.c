@@ -78,7 +78,7 @@ void vMonitorTask(void *pvParameters) {
     }
 }
 
-void vControl_FSMTask(void* pvParameters)
+void vControlFSMTask(void* pvParameters)
 {
     for(;;){
         switch (currentState)
@@ -96,7 +96,7 @@ void vControl_FSMTask(void* pvParameters)
             currentState = off;
             break;
         }
-        vTaskDelay(100/portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
     vTaskDelete(NULL);
 }
@@ -118,7 +118,6 @@ static void vChangeStateTask(void* arg)
                 }
             }
         }
-        vTaskDelay(100/portTICK_PERIOD_MS);
     }
     vTaskDelete(NULL);
 }
@@ -128,6 +127,7 @@ void vReadSensorTask(void* pvParameters)
     data_t data;
     uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
     esp_err_t err;
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     for(;;){
         switch(currentState){
             case performance:
@@ -137,7 +137,6 @@ void vReadSensorTask(void* pvParameters)
                 data.temperature = temperature_int;
                 ESP_LOGI(TAG_SENSOR, "Lectura de humedad: %d | Lectura de temperatura: %d", data.humicity, data.temperature);
                 // Despertar la tarea de mandar datos por MQTT mandando la estructura data 
-                vTaskDelay(3000/portTICK_PERIOD_MS);
             }else{
                 switch (err)
                 {
@@ -159,7 +158,7 @@ void vReadSensorTask(void* pvParameters)
             default:
             break;
         }
-        vTaskDelay(2000/portTICK_PERIOD_MS);
+        xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(2000));
     }
     vTaskDelete(NULL);
 }
@@ -194,10 +193,10 @@ void app_main(void)
     isr_handler_queue = xQueueCreate(10, sizeof(uint32_t)); // Crear cola para manejar interrupcion
 
     // ------ CREATION TASKS ------
-    xTaskCreate(vControl_FSMTask,"FSM Control Task", 2048, NULL, 8, NULL); // Tarea que controla los estados del fsm
-    xTaskCreate(vChangeStateTask,"Change State Task", 4096, NULL, 10, NULL); // Tarea que la isr despierta para cambiar de estado
-    xTaskCreate(vReadSensorTask,"Read Sensor Task", 4096, NULL, 9, NULL); // Tarea que dependiendo del modo, lee el sensor o no
-    xTaskCreate(vMonitorTask,"Monitor Task",4096, NULL, 10, NULL);// Tarea para DEBUG
+    xTaskCreate(vControlFSMTask,"FSM Control Task", 2048, NULL, 6, NULL); // Tarea que controla los estados del fsm
+    xTaskCreate(vReadSensorTask,"Read Sensor Task", 4096, NULL, 6, NULL); // Tarea que dependiendo del modo, lee el sensor o no
+    xTaskCreate(vChangeStateTask,"Change State Task", 4096, NULL, 7, NULL); // Tarea que la isr despierta para cambiar de estado
+    // xTaskCreate(vMonitorTask,"Monitor Task",4096, NULL, , NULL);// Tarea para DEBUG
 }
 
 /**
