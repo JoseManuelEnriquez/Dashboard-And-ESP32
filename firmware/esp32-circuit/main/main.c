@@ -30,6 +30,7 @@
 #define CHANGE_BUTTON GPIO_NUM_26
 #define OFF_BUTTON GPIO_NUM_27
 #define DHT11_SENSOR GPIO_NUM_14
+#define LDR_SENSOR GPIO_NUM_23
 #define ESP_INTR_FLAG_DEFAULT 0
 #define ID 1
 
@@ -81,6 +82,7 @@ static void debug_io(uint64_t io);
 static void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
 static esp_err_t button_config();
 static esp_err_t leds_config();
+static esp_err_t ldr_config();
 static void publish_data(data_t* data);
 static void mqtt_app_start();
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
@@ -157,8 +159,8 @@ void vReadSensorTask(void* pvParameters)
         switch(currentState){
             case performance:
             err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
-            // lectura de fotoresistencia 
             if(err == ESP_OK){
+                data.light = gpio_get_level(LDR_SENSOR);
                 data.humicity = humicity_int;
                 data.temperature = temperature_int;
                 publish_data(&data);                
@@ -213,6 +215,7 @@ void app_main(void)
 {
     // ------ CONFIGURATION ------
     leds_config();
+    ldr_config();
     button_config();
     dht11_init(DHT11_SENSOR);
     isr_handler_queue = xQueueCreate(10, sizeof(uint32_t)); 
@@ -241,6 +244,17 @@ void app_main(void)
 static void debug_io(uint64_t io)
 {
     gpio_dump_io_configuration(stdout, io);
+}
+
+static esp_err_t ldr_config(){
+    gpio_config_t ldr_config = {};
+    ldr_config.intr_type = GPIO_INTR_DISABLE;
+    ldr_config.mode = GPIO_MODE_INPUT;
+    ldr_config.pin_bit_mask = (1ULL << LDR_SENSOR);
+    ldr_config.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    ldr_config.pull_up_en = GPIO_PULLUP_DISABLE;
+
+    return gpio_config(&ldr_config);
 }
 
 static esp_err_t leds_config()
