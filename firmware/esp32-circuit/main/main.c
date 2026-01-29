@@ -2,15 +2,14 @@
  * @file main.c
  * @author Jose Manuel Enriquez Baena (joseenriquezbaena@gmail.com)
  * @brief Lectura de sensores y publicacion por MQTT
- * @version 1.2
+ * @version 1.3
  * @date 20-01-2026
- * * @copyright Copyright (c) 2026
+ * @copyright Copyright (c) 2026
  * */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include <time.h>
 #include "driver/gpio.h"
 #include "mqtt_client.h"
 #include "esp_log.h"
@@ -82,8 +81,7 @@ static void debug_io(uint64_t io);
 static void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
 static esp_err_t button_config();
 static esp_err_t leds_config();
-static void publish_data(data_t* data, const char* topic);
-static time_t get_timestamp();
+static void publish_data(data_t* data);
 static void mqtt_app_start();
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
 
@@ -159,11 +157,11 @@ void vReadSensorTask(void* pvParameters)
         switch(currentState){
             case performance:
             err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
+            // lectura de fotoresistencia 
             if(err == ESP_OK){
                 data.humicity = humicity_int;
                 data.temperature = temperature_int;
-                ESP_LOGI(TAG_SENSOR, "Lectura de humedad: %d | Lectura de temperatura: %d", data.humicity, data.temperature);
-                
+                publish_data(&data);                
             }else{
                 switch (err)
                 {
@@ -284,27 +282,33 @@ static void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t lev
     gpio_set_level(LED_GREEN, level_green);
 }
 
-static time_t get_timestamp(){
-    time_t now;
-    time(&now); 
-    return now;
-}
-
-static void publish_data(data_t* data){
+static void publish_data(data_t* data)
+{
+    /*
+        Hay que crear una instancia de json_out para cada magnitud porque sino da fallo el compilador
+        Por como se define la jerarquita topica es:
+        <dispositivo>/<id>/telemetry/<magnitud-fisica>
+        
+        El payload:
+        {
+            id
+            valor
+            unidad
+        }
+    */
     char buffer[128];
-    struct json_out out = JSON_OUT_BUF(buffer, sizeof(buffer));
-    json_printf(&out, "{id: %d, temperature: %d, unidad: %s}", ID, data->temperature, "Celsius");
+    struct json_out out_temperature = JSON_OUT_BUF(buffer, sizeof(buffer));
+    json_printf(&out_temperature, "{id: %d, temperature: %d, unidad: %s}", ID, data->temperature, "Celsius");
     esp_mqtt_client_publish(client, "ESP32/1/telemetry/temperature", buffer, 0, 0, 0);
     
-    out = JSON_OUT_BUF(buffer, sizeof(buffer));
-    json_printf(&out, "{id: %d, humidicity: %d, unidad: %s}", ID, data->humicity, "percentage");
+    struct json_out out_humidicity = JSON_OUT_BUF(buffer, sizeof(buffer));
+    json_printf(&out_humidicity, "{id: %d, humidicity: %d, unidad: %s}", ID, data->humicity, "percentage");
     esp_mqtt_client_publish(client, "ESP32/1/telemetry/humidicity", buffer, 0, 0, 0);
 
-    out = JSON_OUT_BUF(buffer, sizeof(buffer));
-    json_printf(&out, "{id: %d, light: %d, unidad: %s}", ID, data->light, "bool");
+    struct json_out out_light = JSON_OUT_BUF(buffer, sizeof(buffer));
+    json_printf(&out_light, "{id: %d, light: %d, unidad: %s}", ID, data->light, "bool");
     esp_mqtt_client_publish(client, "ESP32/1/telemetry/light", buffer, 0, 0, 0);
 }
-
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
