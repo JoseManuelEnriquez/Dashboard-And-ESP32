@@ -319,16 +319,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_CONNECTED: 
-        ESP_LOGI(TAG_MQTT, "Dispositivo conectado correctamente\n");
-        
-        msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/telemetry/temperature", 0);
-        ESP_LOGI(TAG_MQTT, "Suscripcion realizada, msg_id=%d\n", msg_id);
-        
-        msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/telemetry/humidicity", 0);
-        ESP_LOGI(TAG_MQTT, "Suscripcion realizada, msg_id=%d\n", msg_id);
-
-        msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/telemetry/light", 0);
-        ESP_LOGI(TAG_MQTT, "Suscripcion realizada, msg_id=%d\n", msg_id);
+        // Subscribirse a los topicos de comandos
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG_MQTT, "Dispositivo desconectado\n");
