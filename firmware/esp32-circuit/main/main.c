@@ -24,13 +24,13 @@
  * -------------------------------------------------
  */
 
-#define LED_RED GPIO_NUM_25
-#define LED_GREEN GPIO_NUM_32
-#define LED_YELLOW GPIO_NUM_33
+#define LED_RED GPIO_NUM_23
+#define LED_GREEN GPIO_NUM_21
+#define LED_YELLOW GPIO_NUM_22
 #define CHANGE_BUTTON GPIO_NUM_26
 #define OFF_BUTTON GPIO_NUM_27
 #define DHT11_SENSOR GPIO_NUM_14
-#define LDR_SENSOR GPIO_NUM_23
+#define LDR_SENSOR GPIO_NUM_19
 #define ESP_INTR_FLAG_DEFAULT 0
 #define ID 1
 
@@ -61,7 +61,7 @@ typedef struct{
 }data_t;
 
 static QueueHandle_t isr_handler_queue = NULL;
-static State_t currentState = performance;
+static State_t currentState = off;
 esp_mqtt_client_handle_t client; // client debe ser global para poder publicar desde publish_data()
 
 // Etiquetas para la funcion ESP_LOG()
@@ -158,12 +158,13 @@ void vReadSensorTask(void* pvParameters)
     for(;;){
         switch(currentState){
             case performance:
-            err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
+            // err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
+            err = ESP_OK;
             if(err == ESP_OK){
                 data.light = gpio_get_level(LDR_SENSOR);
-                data.humicity = humicity_int;
-                data.temperature = temperature_int;
-                publish_data(&data);                
+                // data.humicity = humicity_int;
+                // data.temperature = temperature_int;
+                // publish_data(&data);                
             }else{
                 switch (err)
                 {
@@ -219,7 +220,7 @@ void app_main(void)
     button_config();
     dht11_init(DHT11_SENSOR);
     isr_handler_queue = xQueueCreate(10, sizeof(uint32_t)); 
-    mqtt_app_start();
+    // mqtt_app_start();
     
     // ------ CREATION TASKS ------
 
