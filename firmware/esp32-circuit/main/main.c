@@ -176,11 +176,12 @@ void vReadSensorTask(void* pvParameters)
     for(;;){
         switch(currentState){
             case performance:
-            err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
+            // err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
+            err = ESP_OK;
             if(err == ESP_OK){
                 data.light = gpio_get_level(LDR_SENSOR);
-                data.humicity = humicity_int;
-                data.temperature = temperature_int;
+                // data.humicity = humicity_int;
+                // data.temperature = temperature_int;
                 publish_data(&data);                
             }else{
                 switch (err)
