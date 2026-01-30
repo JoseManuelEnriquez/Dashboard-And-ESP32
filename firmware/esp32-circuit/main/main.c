@@ -73,14 +73,15 @@ typedef struct{
     uint8_t light;
 }data_t;
 
-static QueueHandle_t isr_handler_queue = NULL;
-static State_t currentState = off;
+static QueueHandle_t isr_handler_queue = NULL; // Para despertar la tarea ChangeState
+static State_t currentState = off; 
 esp_mqtt_client_handle_t client; // client debe ser global para poder publicar desde publish_data()
 static EventGroupHandle_t s_wifi_event_group;
 static int s_retry_num = 0;
 
-// Etiquetas para la funcion ESP_LOG()
+// Etiquetas para la funcion ESP_LOG
 static const char* TAG_SENSOR = "SENSOR_TASK";
+static const char* TAG_CONFIG = "CONFIG";
 static const char* TAG_MQTT = "MQTT";
 static const char* TAG_WIFI = "WIFI";
 
@@ -94,8 +95,7 @@ static const char* password = CONFIG_PASSWORD;
  * PROTOTIPO DE FUNCIONES
  * -------------------------------------------------
  */
-
- static void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
+static void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
 static esp_err_t button_config();
 static esp_err_t leds_config();
 static esp_err_t ldr_config();
@@ -232,12 +232,13 @@ static void IRAM_ATTR gpio_isr_off_button_handler(void* args){
 void app_main(void)
 {
     // ------ CONFIGURATION ------
-    leds_config();
-    ldr_config();
-    button_config();
-    dht11_init(DHT11_SENSOR);
-    isr_handler_queue = xQueueCreate(10, sizeof(uint32_t)); 
-
+    ESP_ERROR_CHECK(leds_config());
+    ESP_ERROR_CHECK(ldr_config());
+    ESP_ERROR_CHECK(button_config());
+    ESP_ERROR_CHECK(dht11_init(DHT11_SENSOR));
+    ESP_LOGI(TAG_CONFIG, "Configuracion de hardware exitosa\n");
+    isr_handler_queue = xQueueCreate(10, sizeof(uint32_t));
+    
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
@@ -245,10 +246,8 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    ESP_LOGI(TAG_WIFI, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
-    // mqtt_app_start();
-    
+    ESP_LOGI(TAG_WIFI, "Inicializacion de wifi completada\n");
     // ------ CREATION TASKS ------
 
     // Gestiona los estados de la FSM
@@ -398,7 +397,6 @@ static void wifi_init_sta()
     s_wifi_event_group = xEventGroupCreate();
 
     ESP_ERROR_CHECK(esp_netif_init());
-
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
 
@@ -418,20 +416,20 @@ static void wifi_init_sta()
         },
     };
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
-    ESP_ERROR_CHECK(esp_wifi_start() );
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG_WIFI, "wifi_init_sta finished.");
+    ESP_LOGI(TAG_WIFI, "wifi_init_sta terminado\n.");
 
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 
     if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s", CONFIG_WIFI_SSID, CONFIG_WIFI_PASS);
+        ESP_LOGI(TAG_WIFI, "Conectado a la red\n");
         mqtt_app_start();
     } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGI(TAG_WIFI, "Failed to connect to SSID:%s, password:%s", CONFIG_WIFI_SSID, CONFIG_WIFI_PASS);
+        ESP_LOGE(TAG_WIFI, "Conexion fallida\n");
     } else {
-        ESP_LOGE(TAG_WIFI, "UNEXPECTED EVENT");
+        ESP_LOGE(TAG_WIFI, "Evento no esperado\n");
     }
 }
 
@@ -443,14 +441,14 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
         if (s_retry_num < CONFIG_ESP_MAXIMUM_RETRY) {
             esp_wifi_connect();
             s_retry_num++;
-            ESP_LOGI(TAG_WIFI, "retry to connect to the AP");
+            ESP_LOGI(TAG_WIFI, "Intentando conexion con AP\n");
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
         }
-        ESP_LOGI(TAG_WIFI,"connect to the AP fail");
+        ESP_LOGE(TAG_WIFI,"Conexion al AP fallado\n");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-        ESP_LOGI(TAG_WIFI, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        ESP_LOGI(TAG_WIFI, "ip:" IPSTR, IP2STR(&event->ip_info.ip));
         s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     }
