@@ -15,6 +15,12 @@
 #include "esp_log.h"
 #include "DHT11.h"
 #include "frozen.h"
+#include "esp_event.h"
+#include "esp_log.h"
+#include "esp_wifi.h"
+#include "nvs_flash.h"
+#include "lwip/err.h"
+#include "lwip/sys.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -33,6 +39,40 @@
 #define LDR_SENSOR GPIO_NUM_19
 #define ESP_INTR_FLAG_DEFAULT 0
 #define ID 1
+
+#define WIFI_CONNECTED_BIT BIT0
+#define WIFI_FAIL_BIT      BIT1
+#define CONFIG_ESP_MAXIMUM_RETRY 3
+#define CONFIG_WIFI_SSID "123"
+#define CONFIG_WIFI_PASS "123"
+
+#if CONFIG_ESP_STATION_EXAMPLE_WPA3_SAE_PWE_HUNT_AND_PECK
+#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HUNT_AND_PECK
+#define EXAMPLE_H2E_IDENTIFIER ""
+#elif CONFIG_ESP_STATION_EXAMPLE_WPA3_SAE_PWE_HASH_TO_ELEMENT
+#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HASH_TO_ELEMENT
+#define EXAMPLE_H2E_IDENTIFIER CONFIG_ESP_WIFI_PW_ID
+#elif CONFIG_ESP_STATION_EXAMPLE_WPA3_SAE_PWE_BOTH
+#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_BOTH
+#define EXAMPLE_H2E_IDENTIFIER CONFIG_ESP_WIFI_PW_ID
+#endif
+#if CONFIG_ESP_WIFI_AUTH_OPEN
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_OPEN
+#elif CONFIG_ESP_WIFI_AUTH_WEP
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WEP
+#elif CONFIG_ESP_WIFI_AUTH_WPA_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WPA2_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WPA_WPA2_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_WPA2_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WPA3_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA3_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WPA2_WPA3_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_WPA3_PSK
+#elif CONFIG_ESP_WIFI_AUTH_WAPI_PSK
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WAPI_PSK
+#endif
 
 #define LOW 0
 #define HIGH 1
@@ -63,10 +103,13 @@ typedef struct{
 static QueueHandle_t isr_handler_queue = NULL;
 static State_t currentState = off;
 esp_mqtt_client_handle_t client; // client debe ser global para poder publicar desde publish_data()
+static EventGroupHandle_t s_wifi_event_group;
+static int s_retry_num = 0;
 
 // Etiquetas para la funcion ESP_LOG()
 static const char* TAG_SENSOR = "SENSOR_TASK";
 static const char* TAG_MQTT = "MQTT";
+static const char* TAG_WIFI = "WIFI";
 
 // Las variables se definen en un archivo privado por seguridad.
 static const char* broker_uri = CONFIG_MQTT_BROKER_URI;
@@ -78,14 +121,16 @@ static const char* password = CONFIG_PASSWORD;
  * PROTOTIPO DE FUNCIONES
  * -------------------------------------------------
  */
-static void debug_io(uint64_t io);
-static void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
+
+ static void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
 static esp_err_t button_config();
 static esp_err_t leds_config();
 static esp_err_t ldr_config();
 static void publish_data(data_t* data);
 static void mqtt_app_start();
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
+static void wifi_init_sta();
+static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 
 /**
  * -------------------------------------------------
@@ -158,13 +203,12 @@ void vReadSensorTask(void* pvParameters)
     for(;;){
         switch(currentState){
             case performance:
-            // err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
-            err = ESP_OK;
+            err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
             if(err == ESP_OK){
                 data.light = gpio_get_level(LDR_SENSOR);
-                // data.humicity = humicity_int;
-                // data.temperature = temperature_int;
-                // publish_data(&data);                
+                data.humicity = humicity_int;
+                data.temperature = temperature_int;
+                publish_data(&data);                
             }else{
                 switch (err)
                 {
@@ -220,6 +264,16 @@ void app_main(void)
     button_config();
     dht11_init(DHT11_SENSOR);
     isr_handler_queue = xQueueCreate(10, sizeof(uint32_t)); 
+
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    ESP_LOGI(TAG_WIFI, "ESP_WIFI_MODE_STA");
+    wifi_init_sta();
     // mqtt_app_start();
     
     // ------ CREATION TASKS ------
@@ -242,10 +296,6 @@ void app_main(void)
  * DEFINICION DE FUNCIONES
  * -------------------------------------------------
  */
-static void debug_io(uint64_t io)
-{
-    gpio_dump_io_configuration(stdout, io);
-}
 
 static esp_err_t ldr_config(){
     gpio_config_t ldr_config = {
@@ -331,8 +381,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 {
     // esp_mqtt_event_handle_t es una macro que es un puntero a esp_mqtt_event_t (estructura con los diferentes campos)
     esp_mqtt_event_handle_t event = event_data;
-    esp_mqtt_client_handle_t client = event->client;
-    int msg_id;
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_CONNECTED: 
@@ -370,4 +418,69 @@ static void mqtt_app_start()
     client = esp_mqtt_client_init(&mqtt_conf);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(client);
+}
+
+static void wifi_init_sta()
+{
+    s_wifi_event_group = xEventGroupCreate();
+
+    ESP_ERROR_CHECK(esp_netif_init());
+
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    esp_netif_create_default_wifi_sta();
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    esp_event_handler_instance_t instance_any_id;
+    esp_event_handler_instance_t instance_got_ip;
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, &instance_any_id));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL, &instance_got_ip));
+
+    wifi_config_t wifi_config = {
+        .sta = {
+            .ssid = CONFIG_WIFI_SSID,
+            .password = CONFIG_WIFI_PASS,
+            .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
+            .sae_pwe_h2e = ESP_WIFI_SAE_MODE,
+            .sae_h2e_identifier = EXAMPLE_H2E_IDENTIFIER,
+        },
+    };
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
+    ESP_ERROR_CHECK(esp_wifi_start() );
+
+    ESP_LOGI(TAG_WIFI, "wifi_init_sta finished.");
+
+    EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+
+    if (bits & WIFI_CONNECTED_BIT) {
+        ESP_LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s", CONFIG_WIFI_SSID, CONFIG_WIFI_PASS);
+        mqtt_app_start();
+    } else if (bits & WIFI_FAIL_BIT) {
+        ESP_LOGI(TAG_WIFI, "Failed to connect to SSID:%s, password:%s", CONFIG_WIFI_SSID, CONFIG_WIFI_PASS);
+    } else {
+        ESP_LOGE(TAG_WIFI, "UNEXPECTED EVENT");
+    }
+}
+
+static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
+{
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        if (s_retry_num < CONFIG_ESP_MAXIMUM_RETRY) {
+            esp_wifi_connect();
+            s_retry_num++;
+            ESP_LOGI(TAG_WIFI, "retry to connect to the AP");
+        } else {
+            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
+        }
+        ESP_LOGI(TAG_WIFI,"connect to the AP fail");
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+        ESP_LOGI(TAG_WIFI, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        s_retry_num = 0;
+        xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+    }
 }
