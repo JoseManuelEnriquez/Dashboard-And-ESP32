@@ -14,7 +14,7 @@
 #include "mqtt_client.h"
 #include "esp_log.h"
 #include "DHT11.h"
-#include "frozen.h"
+#include "frozen.h" // Libreria necesaria para crear json strings
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
@@ -24,13 +24,15 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+
 /**
- * -------------------------------------------------
- * DEFINICIONES MACROS VARIABLES GLOBALES
- * -------------------------------------------------
+ * -----------------------------------------------------------
+ * DEFINICIONES MACROS | VARIABLES GLOBALES | TIPOS DE DATOS
+ * -----------------------------------------------------------
  */
 
-#define ID 1
+#define ID 1  
+
 #define LED_RED GPIO_NUM_23
 #define LED_GREEN GPIO_NUM_21
 #define LED_YELLOW GPIO_NUM_22
@@ -38,6 +40,7 @@
 #define OFF_BUTTON GPIO_NUM_27
 #define DHT11_SENSOR GPIO_NUM_14
 #define LDR_SENSOR GPIO_NUM_19
+
 #define ESP_INTR_FLAG_DEFAULT 0
 
 #define WIFI_CONNECTED_BIT BIT0
