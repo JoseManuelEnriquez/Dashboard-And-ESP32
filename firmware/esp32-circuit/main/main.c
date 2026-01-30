@@ -248,25 +248,26 @@ static void debug_io(uint64_t io)
 }
 
 static esp_err_t ldr_config(){
-    gpio_config_t ldr_config = {};
-    ldr_config.intr_type = GPIO_INTR_DISABLE;
-    ldr_config.mode = GPIO_MODE_INPUT;
-    ldr_config.pin_bit_mask = (1ULL << LDR_SENSOR);
-    ldr_config.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    ldr_config.pull_up_en = GPIO_PULLUP_DISABLE;
-
+    gpio_config_t ldr_config = {
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_INPUT,
+        .pin_bit_mask = (1ULL << LDR_SENSOR),
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_DISABLE
+    };
     return gpio_config(&ldr_config);
 }
 
 static esp_err_t leds_config()
 {
     // Configuracion de pines
-    gpio_config_t out_pin = {};
-    out_pin.intr_type = GPIO_INTR_DISABLE;
-    out_pin.pin_bit_mask = (1ULL << LED_RED | 1ULL << LED_GREEN | 1ULL << LED_YELLOW);
-    out_pin.mode = GPIO_MODE_OUTPUT;
-    out_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    out_pin.pull_up_en = GPIO_PULLUP_DISABLE;
+    gpio_config_t out_pin = {
+        .intr_type = GPIO_INTR_DISABLE,
+        .pin_bit_mask = (1ULL << LED_RED | 1ULL << LED_GREEN | 1ULL << LED_YELLOW),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_DISABLE
+    };
     return gpio_config(&out_pin);
 }
 
@@ -274,12 +275,13 @@ static esp_err_t button_config()
 {
     // Configuracion de pines
     esp_err_t err;
-    gpio_config_t input_pin = {};
-    input_pin.intr_type = GPIO_INTR_NEGEDGE;
-    input_pin.pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON);
-    input_pin.mode = GPIO_MODE_INPUT;
-    input_pin.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    input_pin.pull_up_en = GPIO_PULLUP_ENABLE;
+    gpio_config_t input_pin = {
+        .intr_type = GPIO_INTR_NEGEDGE,
+        .pin_bit_mask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON),
+        .mode = GPIO_MODE_INPUT,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_ENABLE
+    };
     err = gpio_config(&input_pin);
 
     // Configuracion de interrupciones
