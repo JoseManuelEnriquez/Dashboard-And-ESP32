@@ -249,6 +249,7 @@ void app_main(void)
 
     wifi_init_sta();
     ESP_LOGI(TAG_WIFI, "Inicializacion de wifi completada\n");
+    mqtt_app_start();
     // ------ CREATION TASKS ------
 
     // Gestiona los estados de la FSM
@@ -426,7 +427,6 @@ static void wifi_init_sta()
 
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG_WIFI, "Conectado a la red\n");
-        mqtt_app_start();
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGE(TAG_WIFI, "Conexion fallida\n");
     } else {
