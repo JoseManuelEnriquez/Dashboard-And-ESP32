@@ -7,8 +7,8 @@
 This project is a real-time IoT monitoring system powered by an *ESP32* microcontroller. It uses the *MQTT protocol* to transmit temperature, humidity, and light intensity data to a centralized dashboard.
 
 The main goal is to provide an efficient, robust, and low-power solution for environmental monitoring.
-##  Architecture 
-### Firmware 
+##  📡 Architecture 
+### 💻 Firmware 
 The firmware is built on top of *FreeRTOS*, leveraging task management to implement a *Finite State Machine (FSM)*. This FSM has three distinct modes of operation:
 
 - ⚡ *Performance (Active Mode):* In this mode, the ESP32 executes a periodic task that acquires data from the DHT11 (temperature/humidity) and LDR (light) sensors. This telemetry is serialized and published via MQTT to the broker. (Details on the MQTT topics can be found in the "MQTT Configuration" section).
