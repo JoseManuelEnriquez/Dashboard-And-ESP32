@@ -1,4 +1,4 @@
-# Monitoring system using ESP32
+# 📊 Monitoring system using ESP32
 ![C++](https://img.shields.io/badge/Code-C++-informational?style=flat&logo=c%2B%2B&logoColor=white&color=00599C)
 ![ESP32](https://img.shields.io/badge/Hardware-ESP32-red)
 ![MQTT](https://img.shields.io/badge/Protocol-MQTT-blue)
