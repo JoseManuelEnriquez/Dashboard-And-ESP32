@@ -5,4 +5,6 @@ idf_component_register(SRCS "main.c"
                     REQUIRES Frozen
                     PRIV_REQUIRES mqtt
                     REQUIRES esp_wifi
-                    REQUIRES nvs_flash)
+                    REQUIRES nvs_flash
+                    REQUIRES esp_system
+                    )

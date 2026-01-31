@@ -10,12 +10,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include "frozen.h" // Libreria necesaria para crear json strings
+#include "DHT11.h"
 #include "driver/gpio.h"
 #include "mqtt_client.h"
 #include "esp_log.h"
-#include "DHT11.h"
-#include "frozen.h" // Libreria necesaria para crear json strings
 #include "esp_event.h"
+#include "esp_system.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "nvs_flash.h"
@@ -78,6 +79,7 @@ static State_t currentState = off;
 esp_mqtt_client_handle_t client; // client debe ser global para poder publicar desde publish_data()
 static EventGroupHandle_t s_wifi_event_group;
 static int s_retry_num = 0;
+static int mqtt_connected = 0;
 
 // Etiquetas para la funcion ESP_LOG
 static const char* TAG_SENSOR = "SENSOR_TASK";
@@ -95,6 +97,7 @@ static const char* password = CONFIG_PASSWORD;
  * PROTOTIPO DE FUNCIONES
  * -------------------------------------------------
  */
+
 static void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
 static esp_err_t button_config();
 static esp_err_t leds_config();
@@ -170,7 +173,7 @@ static void vChangeStateTask(void* arg)
 void vReadSensorTask(void* pvParameters)
 {
     data_t data;
-    uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
+    // uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
     esp_err_t err;
     TickType_t xLastWakeTime = xTaskGetTickCount();
     for(;;){
@@ -182,7 +185,8 @@ void vReadSensorTask(void* pvParameters)
                 data.light = gpio_get_level(LDR_SENSOR);
                 // data.humicity = humicity_int;
                 // data.temperature = temperature_int;
-                publish_data(&data);                
+                if(mqtt_connected == 1)
+                    publish_data(&data);                
             }else{
                 switch (err)
                 {
@@ -249,6 +253,7 @@ void app_main(void)
 
     wifi_init_sta();
     ESP_LOGI(TAG_WIFI, "Inicializacion de wifi completada\n");
+    
     mqtt_app_start();
     // ------ CREATION TASKS ------
 
@@ -357,20 +362,33 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     switch ((esp_mqtt_event_id_t)event_id)
     {
+    case MQTT_EVENT_BEFORE_CONNECT:
+        ESP_LOGI(TAG_MQTT, "READY EVENT");
+        break;
     case MQTT_EVENT_CONNECTED: 
-        // Subscribirse a los topicos de comandos
+        mqtt_connected = 1;
+        ESP_LOGI(TAG_MQTT, "MQTT_EVENT_CONNECTED");
         break;
     case MQTT_EVENT_DISCONNECTED:
-        ESP_LOGI(TAG_MQTT, "Dispositivo desconectado\n");
+        mqtt_connected = 0;
+        ESP_LOGI(TAG_MQTT, "MQTT_EVENT_DISCONNECTED");
         break;
      case MQTT_EVENT_PUBLISHED:
-        ESP_LOGE(TAG_MQTT, "Suscripcion aceptada, msg_id=%d", event->msg_id);
+        ESP_LOGE(TAG_MQTT, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
-        ESP_LOGE(TAG_MQTT, "Suscripcion rechazada, msg_id=%d\n", event->msg_id);
+        ESP_LOGE(TAG_MQTT, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d\n", event->msg_id);
+        break;
+    case MQTT_EVENT_DATA:
+        ESP_LOGI(TAG_MQTT, "MQTT_EVENT_DATA");
+        printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+        printf("DATA=%.*s\r\n", event->data_len, event->data);
+        break;
+    case MQTT_EVENT_ERROR:
+        ESP_LOGI(TAG_MQTT, "MQTT_EVENT_ERROR");
         break;
     default:
-        ESP_LOGI(TAG_MQTT, "Otro evento id:%d", event->event_id);
+        ESP_LOGI(TAG_MQTT, "UNKNOWN EVENT id:%d", event->event_id);
         break;
     }
 }
@@ -387,11 +405,14 @@ static void mqtt_app_start()
     esp_mqtt_client_config_t mqtt_conf = {
         .broker.address.uri = broker_uri,
         .credentials.username = username,
+        .credentials.client_id = "ESP32",
+        //.network.timeout_ms = 10000,
         .credentials.authentication.password = password
     };
     client = esp_mqtt_client_init(&mqtt_conf);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
-    esp_mqtt_client_start(client);
+    ESP_ERROR_CHECK(esp_mqtt_client_start(client));
+    ESP_LOGI(TAG_MQTT,"APP MQTT START\n");
 }
 
 static void wifi_init_sta()
@@ -421,16 +442,16 @@ static void wifi_init_sta()
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG_WIFI, "wifi_init_sta terminado\n.");
+    ESP_LOGI(TAG_WIFI, "WIFI_INIT_STA FINISHED");
 
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 
     if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG_WIFI, "Conectado a la red\n");
+        ESP_LOGI(TAG_WIFI, "CONNECTED");
     } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGE(TAG_WIFI, "Conexion fallida\n");
+        ESP_LOGE(TAG_WIFI, "CONNECTED FAILED");
     } else {
-        ESP_LOGE(TAG_WIFI, "Evento no esperado\n");
+        ESP_LOGE(TAG_WIFI, "NO EXPECTED EVENT");
     }
 }
 
@@ -442,11 +463,11 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
         if (s_retry_num < CONFIG_ESP_MAXIMUM_RETRY) {
             esp_wifi_connect();
             s_retry_num++;
-            ESP_LOGI(TAG_WIFI, "Intentando conexion con AP\n");
+            ESP_LOGI(TAG_WIFI, "RETRY CONNECTION");
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
         }
-        ESP_LOGE(TAG_WIFI,"Conexion al AP fallado\n");
+        ESP_LOGE(TAG_WIFI,"CONECTION AP FAILED");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG_WIFI, "ip:" IPSTR, IP2STR(&event->ip_info.ip));
