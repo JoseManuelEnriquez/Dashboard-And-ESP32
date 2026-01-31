@@ -2,7 +2,7 @@
  * @file main.c
  * @author Jose Manuel Enriquez Baena (joseenriquezbaena@gmail.com)
  * @brief Lectura de sensores y publicacion por MQTT
- * @version 1.3
+ * @version 1.4
  * @date 20-01-2026
  * @copyright Copyright (c) 2026
  * */
