@@ -179,7 +179,8 @@ void vReadSensorTask(void* pvParameters)
     for(;;){
         switch(currentState){
             case performance:
-            err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
+            // err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
+            err = ESP_OK;
             if(err == ESP_OK){
                 data.light = gpio_get_level(LDR_SENSOR);
                 // data.humicity = humicity_int;
@@ -360,6 +361,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     // esp_mqtt_event_handle_t es una macro que es un puntero a esp_mqtt_event_t (estructura con los diferentes campos)
     esp_mqtt_event_handle_t event = event_data;
     int msg_id;
+    char topic[30];
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_BEFORE_CONNECT:
@@ -382,9 +384,16 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGE(TAG_MQTT, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d\n", event->msg_id);
         break;
     case MQTT_EVENT_DATA:
+        
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
+        sprintf(topic, "%.*s", event->topic_len,event->topic);
+        if(strcmp(topic,"ESP32/1/config/SLEEP")){
+            currentState = performance;
+        }else{
+            currentState = off;
+        }
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_ERROR");
