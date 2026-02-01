@@ -190,11 +190,11 @@ void vReadSensorTask(void* pvParameters)
             }else{
                 switch (err)
                 {
-                case ESP_ERR_INVALID_ARG: ESP_LOGE(TAG_SENSOR, "Argumentos invalidos\n");
+                case ESP_ERR_INVALID_ARG: ESP_LOGE(TAG_SENSOR, "ESP_ERR_INVALID_ARG");
                 break;
-                case ESP_ERR_INVALID_CRC: ESP_LOGE(TAG_SENSOR, "Error de checksum\n");
+                case ESP_ERR_INVALID_CRC: ESP_LOGE(TAG_SENSOR, "ESP_ERR_INVALID_CRC");
                 break;
-                case ESP_ERR_TIMEOUT: ESP_LOGE(TAG_SENSOR, "Error de timeout \n");
+                case ESP_ERR_TIMEOUT: ESP_LOGE(TAG_SENSOR, "ESP_ERR_TIMEOUT");
                 break;
                 default:
                     break;
@@ -241,7 +241,7 @@ void app_main(void)
     ESP_ERROR_CHECK(ldr_config());
     ESP_ERROR_CHECK(button_config());
     ESP_ERROR_CHECK(dht11_init(DHT11_SENSOR));
-    ESP_LOGI(TAG_CONFIG, "Configuracion de hardware exitosa\n");
+    ESP_LOGI(TAG_CONFIG, "HARDWARE INIT SUCCESS\n");
     isr_handler_queue = xQueueCreate(10, sizeof(uint32_t));
     
     esp_err_t ret = nvs_flash_init();
@@ -252,7 +252,7 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
 
     wifi_init_sta();
-    ESP_LOGI(TAG_WIFI, "Inicializacion de wifi completada\n");
+    ESP_LOGI(TAG_WIFI, "WIFI INIT SUCCESS");
     
     mqtt_app_start();
     // ------ CREATION TASKS ------
