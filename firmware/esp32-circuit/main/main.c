@@ -173,14 +173,13 @@ static void vChangeStateTask(void* arg)
 void vReadSensorTask(void* pvParameters)
 {
     data_t data;
-    // uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
+    uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
     esp_err_t err;
     TickType_t xLastWakeTime = xTaskGetTickCount();
     for(;;){
         switch(currentState){
             case performance:
-            // err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
-            err = ESP_OK;
+            err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
             if(err == ESP_OK){
                 data.light = gpio_get_level(LDR_SENSOR);
                 // data.humicity = humicity_int;
@@ -360,13 +359,16 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 {
     // esp_mqtt_event_handle_t es una macro que es un puntero a esp_mqtt_event_t (estructura con los diferentes campos)
     esp_mqtt_event_handle_t event = event_data;
+    int msg_id;
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_BEFORE_CONNECT:
-        ESP_LOGI(TAG_MQTT, "READY EVENT");
+        ESP_LOGI(TAG_MQTT, "MQTT_EVENT_BEFORE_CONNECT");
         break;
     case MQTT_EVENT_CONNECTED: 
         mqtt_connected = 1;
+        msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/ON", 0);
+        msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/SLEEP", 0);
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_CONNECTED");
         break;
     case MQTT_EVENT_DISCONNECTED:
