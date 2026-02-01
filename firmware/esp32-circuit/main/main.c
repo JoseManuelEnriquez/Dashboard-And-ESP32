@@ -173,18 +173,17 @@ static void vChangeStateTask(void* arg)
 void vReadSensorTask(void* pvParameters)
 {
     data_t data;
-    // uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
+    uint8_t humicity_int, humicity_dec, temperature_int, temperature_dec;
     esp_err_t err;
     TickType_t xLastWakeTime = xTaskGetTickCount();
     for(;;){
         switch(currentState){
             case performance:
-            // err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
-            err = ESP_OK;
+            err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
             if(err == ESP_OK){
                 data.light = gpio_get_level(LDR_SENSOR);
-                // data.humicity = humicity_int;
-                // data.temperature = temperature_int;
+                data.humicity = humicity_int;
+                data.temperature = temperature_int;
                 if(mqtt_connected == 1)
                     publish_data(&data);                
             }else{
