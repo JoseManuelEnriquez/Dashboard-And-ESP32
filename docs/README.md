@@ -44,7 +44,7 @@ Eclipse Mosquitto is the open-source broker used for the communications. It was 
 
 To ensure security, anonymous access is disabled, and connections are authenticated via a pre-defined username and password list.
 
-![Descripción de la imagen](img/Comunicaciones.png.png)
+![Descripción de la imagen](img/Comunicaciones.png)
 
 #### 🗂️ MQTT Topic Hierarchy
 
@@ -55,10 +55,10 @@ The project follows a strict hierarchical topic pattern to organize data flow:
 Data sent **FROM** the ESP32 **TO** the Broker.
 
 | Metric | Example topic | Payload Type | Description |
-| :--- | :--💻- | :---: | :--- |
+| :--- | :--- | :---: | :--- |
 | **Temperature** | `ESP32/1/telemetry/temperature` | `Int` | Ambient temperature from DHT11 (°C). |
-| **Humidity** | `ESP32/1/telemetry/humidicity` | `Int` | Relative humidity percentage (%). |
-| **Light Level** | `ESP32/1/telemetry/light` | `bool` | LDR sensor value. |
+| **Humidity** | `ESP32/1/telemetry/humidity` | `Int` | Relative humidity percentage (%). |
+| **Light Level** | `ESP32/1/telemetry/light` | `Bool` | LDR sensor value. |
 
 ##### ⚙️ Configuration & Commands (Subscribe)
 Commands sent **FROM** the Broker **TO** the ESP32.
@@ -74,8 +74,8 @@ This project was developed using the official Espressif framework within VS Code
 
 ### 📚 Dependencies 
 - Framework ESP-IDF
-- External Libraries DHT11: API for the DHT11 sensor
-- External Libraris Frozen: API for serialize json to send via MQTT
+- External Librarie DHT11: API for the DHT11 sensor
+- External Librarie Frozen: A lightweight JSON parser/generator used for serializing telemetry data to send via MQTT.
 - freeRTOS
 
 <!-- FALTA APARTADO DEMOSTRACION >
