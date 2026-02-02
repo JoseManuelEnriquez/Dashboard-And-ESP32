@@ -1,0 +1,516 @@
+[
+    {
+        "id": "1ea3fd3913935cab",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "136fe26bb42aad53",
+        "type": "mqtt-broker",
+        "name": "Mosquitto",
+        "broker": "192.168.100.137",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "87a5a3266dd7699a",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": true,
+                "reset": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Node-RED Dashboard",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD/MM/YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
+        "id": "2c279829f4cc3504",
+        "type": "ui_tab",
+        "name": "TELEMETRY",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "89d72f4c774e35b7",
+        "type": "ui_group",
+        "name": "MEDICIONES",
+        "tab": "2c279829f4cc3504",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "c0fb4b96712a3d1c",
+        "type": "ui_tab",
+        "name": "CONFIGURATION",
+        "icon": "dashboard",
+        "order": 2,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "4a1a6ab730ba85dc",
+        "type": "ui_group",
+        "name": "OPCIONES",
+        "tab": "c0fb4b96712a3d1c",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "4d1f9c9cf014858a",
+        "type": "ui_text",
+        "z": "1ea3fd3913935cab",
+        "group": "89d72f4c774e35b7",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Temperatura",
+        "format": "{{msg.payload.temperature}}",
+        "layout": "row-center",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 510,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "7231cf78f1768d7e",
+        "type": "ui_text",
+        "z": "1ea3fd3913935cab",
+        "group": "89d72f4c774e35b7",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Luz",
+        "format": "{{msg.payload.light}}",
+        "layout": "row-center",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 490,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "007092dea20b80df",
+        "type": "ui_text",
+        "z": "1ea3fd3913935cab",
+        "group": "89d72f4c774e35b7",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Humedad",
+        "format": "{{msg.payload.humidicity}}",
+        "layout": "row-center",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 500,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "e99843f6cff94f24",
+        "type": "mqtt in",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "topic": "ESP32/1/telemetry/temperature",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "136fe26bb42aad53",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 210,
+        "y": 60,
+        "wires": [
+            [
+                "4d1f9c9cf014858a"
+            ]
+        ]
+    },
+    {
+        "id": "bff584d1ef3ae779",
+        "type": "mqtt in",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "topic": "ESP32/1/telemetry/humidicity",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "136fe26bb42aad53",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 220,
+        "y": 120,
+        "wires": [
+            [
+                "007092dea20b80df"
+            ]
+        ]
+    },
+    {
+        "id": "23d715bb355ad54b",
+        "type": "mqtt in",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "topic": "ESP32/1/telemetry/light",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "136fe26bb42aad53",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 240,
+        "y": 180,
+        "wires": [
+            [
+                "7231cf78f1768d7e"
+            ]
+        ]
+    },
+    {
+        "id": "2a3b75ee9b8a932f",
+        "type": "ui_slider",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "label": "DELAY",
+        "tooltip": "",
+        "group": "4a1a6ab730ba85dc",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "outs": "end",
+        "topic": "topic",
+        "topicType": "msg",
+        "min": "2000",
+        "max": "5000",
+        "step": 1,
+        "className": "",
+        "x": 200,
+        "y": 520,
+        "wires": [
+            [
+                "21d6d3a47154bbb1",
+                "a0b183b064aefb23"
+            ]
+        ]
+    },
+    {
+        "id": "9e3cf3c6d190c0a0",
+        "type": "ui_switch",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "label": "ON/OFF",
+        "tooltip": "",
+        "group": "4a1a6ab730ba85dc",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "decouple": "false",
+        "topic": "topic",
+        "topicType": "msg",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "bool",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "bool",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 200,
+        "y": 360,
+        "wires": [
+            [
+                "d4997417eddfa940"
+            ]
+        ]
+    },
+    {
+        "id": "d4997417eddfa940",
+        "type": "function",
+        "z": "1ea3fd3913935cab",
+        "name": "function 1",
+        "func": "\nlet payload = msg.payload;\n\nmsg.payload = {}\n\nif(payload){\n    msg.topic = \"ESP32/1/config/ON\";\n}else{\n    msg.topic = \"ESP32/1/config/SLEEP\";\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 360,
+        "wires": [
+            [
+                "222f32e8506934e6",
+                "a251141e5f85475b"
+            ]
+        ]
+    },
+    {
+        "id": "222f32e8506934e6",
+        "type": "debug",
+        "z": "1ea3fd3913935cab",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 600,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "a251141e5f85475b",
+        "type": "switch",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "ESP32/1/config/ON",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "ESP32/1/config/SLEEP",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 590,
+        "y": 360,
+        "wires": [
+            [
+                "f4b7fa4e7a1aae8f"
+            ],
+            [
+                "8abe1f0ec2573e63"
+            ]
+        ]
+    },
+    {
+        "id": "f4b7fa4e7a1aae8f",
+        "type": "mqtt out",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "topic": "ESP32/1/config/ON",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "136fe26bb42aad53",
+        "x": 780,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "8abe1f0ec2573e63",
+        "type": "mqtt out",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "topic": "ESP32/1/config/SLEEP",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "136fe26bb42aad53",
+        "x": 810,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "21d6d3a47154bbb1",
+        "type": "debug",
+        "z": "1ea3fd3913935cab",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 360,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "a0b183b064aefb23",
+        "type": "ui_gauge",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "group": "4a1a6ab730ba85dc",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "DELAY",
+        "label": "units",
+        "format": "{{value}}",
+        "min": "2000",
+        "max": "5000",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 380,
+        "y": 520,
+        "wires": []
+    }
+]
