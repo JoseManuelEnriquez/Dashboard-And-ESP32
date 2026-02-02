@@ -42,6 +42,13 @@
 #define DHT11_SENSOR GPIO_NUM_14
 #define LDR_SENSOR GPIO_NUM_19
 
+/*
+Hay que definir un delay minimo para la tarea ReadSensor porque el sensor DHT11 no puede hacer dos lecturas consecutivas
+sin haber pasado mas de 2 segundos. Como el delay se puede configurar, hay que controlar que no configuren un delay menor 
+a 2 segundos
+*/
+#define MIN_DELAY 2000
+
 #define ESP_INTR_FLAG_DEFAULT 0
 
 #define WIFI_CONNECTED_BIT BIT0
@@ -80,6 +87,7 @@ esp_mqtt_client_handle_t client; // client debe ser global para poder publicar d
 static EventGroupHandle_t s_wifi_event_group;
 static int s_retry_num = 0;
 static int mqtt_connected = 0;
+static int delay = 2000; //
 
 // Etiquetas para la funcion ESP_LOG
 static const char* TAG_SENSOR = "SENSOR_TASK";
@@ -360,7 +368,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     // esp_mqtt_event_handle_t es una macro que es un puntero a esp_mqtt_event_t (estructura con los diferentes campos)
     esp_mqtt_event_handle_t event = event_data;
     int msg_id;
-    char topic[30];
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_BEFORE_CONNECT:
@@ -370,6 +377,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         mqtt_connected = 1;
         msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/ON", 0);
         msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/SLEEP", 0);
+        msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/delay", 0);
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_CONNECTED");
         break;
     case MQTT_EVENT_DISCONNECTED:
@@ -383,15 +391,35 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGE(TAG_MQTT, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d\n", event->msg_id);
         break;
     case MQTT_EVENT_DATA:
-        
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_DATA");
-        printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-        printf("DATA=%.*s\r\n", event->data_len, event->data);
+        // printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+        // printf("DATA=%.*s\r\n", event->data_len, event->data);
+        char topic[30];
         sprintf(topic, "%.*s", event->topic_len,event->topic);
-        if(strcmp(topic,"ESP32/1/config/SLEEP")){
+        if(strcmp(topic,"ESP32/1/config/ON")){
             currentState = performance;
-        }else{
+        }else if(strcmp(topic, "ESP32/1/config/configuration")){
+            currentState = configuration;
+        }else if(strcmp(topic, "ESP32/1/config/SLEEP")){
             currentState = off;
+        }else if(strcmp(topic, "ESP32/1/config/delay")){
+            if(currentState == configuration){
+                int delay;
+                char data[150];
+                sprintf(data, "%.*s", event->data_len, event->data);
+                // Sacar del json el dato en entero y comprobar que el delay sea mayor que MIN_DELAY
+                if(delay < MIN_DELAY){
+                    char buffer[128];
+                    struct json_out out_error = JSON_OUT_BUF(buffer, sizeof(buffer));
+                    json_printf(&out_error, "{id: %d, error: %s}", ID, "INCORRECT_DELAY");
+                    msg_id = esp_mqtt_client_publish(client, "ESP32/1/error", buffer, 0, 0, 0);
+                }
+            }else{
+                char buffer[128];
+                struct json_out out_error = JSON_OUT_BUF(buffer, sizeof(buffer));
+                json_printf(&out_error, "{id: %d, error: %s}", ID, "INCORRECT_MODE");
+                msg_id = esp_mqtt_client_publish(client, "ESP32/1/error", buffer, 0, 0, 0);
+            }
         }
         break;
     case MQTT_EVENT_ERROR:
