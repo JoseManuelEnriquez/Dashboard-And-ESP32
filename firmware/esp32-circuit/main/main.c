@@ -87,7 +87,7 @@ esp_mqtt_client_handle_t client; // client debe ser global para poder publicar d
 static EventGroupHandle_t s_wifi_event_group;
 static int s_retry_num = 0;
 static int mqtt_connected = 0;
-static int delay = 2000; //
+static int delay = MIN_DELAY; // Tiempo que se queda bloqueada la tarea ReadSensor (es configurable por MQTT)
 
 // Etiquetas para la funcion ESP_LOG
 static const char* TAG_SENSOR = "SENSOR_TASK";
@@ -215,7 +215,7 @@ void vReadSensorTask(void* pvParameters)
             default:
             break;
         }
-        xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(2000));
+        xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(delay));
     }
     vTaskDelete(NULL);
 }
@@ -390,34 +390,56 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_UNSUBSCRIBED:
         ESP_LOGE(TAG_MQTT, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d\n", event->msg_id);
         break;
+    
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_DATA");
-        // printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-        // printf("DATA=%.*s\r\n", event->data_len, event->data);
+
         char topic[30];
         sprintf(topic, "%.*s", event->topic_len,event->topic);
-        if(strcmp(topic,"ESP32/1/config/ON")){
+
+        /* 
+            ESP32 esta suscrito a varios topicos:
+            - ESP32/1/config/ON: Cambia el modo del ESP32 a modo performance
+            - ESP32/1/config/configuration: Cambia el modo del ESP32 a modo configuration
+            - ESP32/1/config/SLEEP: Cambia el modo del ESP32 a modo off
+            - ESP32/1/config/delay: Topico para cambiar el delay que espera la tarea ReadSensor. 
+                Para cambiar el delay ESP32 debe de estar en modo configuracion. En caso que se reciba
+                un mensaje config/delay y no esta en modo configuration, da el error "INCORRECT MODE"
+                Este topico tiene de payload:
+                {
+                    delay: value
+                }
+                Si value < MIN_DELAY, salta un error "INCORRECT DELAY"
+        */
+        if(strcmp(topic,"ESP32/1/config/ON"))
+        {
             currentState = performance;
-        }else if(strcmp(topic, "ESP32/1/config/configuration")){
+        }else if(strcmp(topic, "ESP32/1/config/configuration"))
+        {
             currentState = configuration;
-        }else if(strcmp(topic, "ESP32/1/config/SLEEP")){
+        }else if(strcmp(topic, "ESP32/1/config/SLEEP"))
+        {
             currentState = off;
-        }else if(strcmp(topic, "ESP32/1/config/delay")){
+        }else if(strcmp(topic, "ESP32/1/config/delay"))
+        {
             if(currentState == configuration){
-                int delay;
-                char data[150];
-                sprintf(data, "%.*s", event->data_len, event->data);
-                // Sacar del json el dato en entero y comprobar que el delay sea mayor que MIN_DELAY
-                if(delay < MIN_DELAY){
+                int delay_receive;
+                const char* json_str = event->data;
+                int result = json_scanf(json_str, strlen(json_str), "{delay: %d}", &delay_receive);
+
+                if(result > 0 && delay_receive > MIN_DELAY){    
+                    delay = delay_receive;
+                }else{
                     char buffer[128];
                     struct json_out out_error = JSON_OUT_BUF(buffer, sizeof(buffer));
-                    json_printf(&out_error, "{id: %d, error: %s}", ID, "INCORRECT_DELAY");
+                    json_printf(&out_error, "{id: %d, error: %s}", ID, "CONFIGURATION DELAY FAILED");
                     msg_id = esp_mqtt_client_publish(client, "ESP32/1/error", buffer, 0, 0, 0);
+                    ESP_LOGE(TAG_MQTT, "READ TOPIC DELAY FAILED");
                 }
             }else{
                 char buffer[128];
                 struct json_out out_error = JSON_OUT_BUF(buffer, sizeof(buffer));
-                json_printf(&out_error, "{id: %d, error: %s}", ID, "INCORRECT_MODE");
+                json_printf(&out_error, "{id: %d, error: %s}", ID, "INCORRECT MODE");
                 msg_id = esp_mqtt_client_publish(client, "ESP32/1/error", buffer, 0, 0, 0);
             }
         }
