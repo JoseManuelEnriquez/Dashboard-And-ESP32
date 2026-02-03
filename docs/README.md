@@ -85,4 +85,6 @@ This project was developed using the official Espressif framework within VS Code
 - External Librarie Frozen: A lightweight JSON parser/generator used for serializing telemetry data to send via MQTT.
 - freeRTOS
 
-<!-- FALTA APARTADO DEMOSTRACION >
+## 🚀 Demo
+
+See the project in action:
