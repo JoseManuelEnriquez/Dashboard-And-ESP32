@@ -585,6 +585,20 @@
         "groupType": "default"
     },
     {
+        "id": "185dd488c7348857",
+        "type": "ui-group",
+        "name": "Configuration delay",
+        "page": "1c32bf992a27d8ba",
+        "width": "6",
+        "height": "1",
+        "order": 2,
+        "showTitle": true,
+        "className": "",
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
+    },
+    {
         "id": "e99843f6cff94f24",
         "type": "mqtt in",
         "z": "1ea3fd3913935cab",
@@ -601,7 +615,7 @@
         "y": 60,
         "wires": [
             [
-                "a750f758c91dd438"
+                "c0bf08dce2b65f5c"
             ]
         ]
     },
@@ -622,7 +636,7 @@
         "y": 120,
         "wires": [
             [
-                "6e27ddc6051fe079"
+                "b3eb49837273faaa"
             ]
         ]
     },
@@ -643,7 +657,7 @@
         "y": 180,
         "wires": [
             [
-                "b57a2fa2e6483919"
+                "f6e4b68a25f5e95d"
             ]
         ]
     },
@@ -660,7 +674,7 @@
         "finalize": "",
         "libs": [],
         "x": 350,
-        "y": 340,
+        "y": 300,
         "wires": [
             [
                 "a251141e5f85475b"
@@ -690,7 +704,7 @@
         "repair": false,
         "outputs": 2,
         "x": 510,
-        "y": 340,
+        "y": 300,
         "wires": [
             [
                 "f4b7fa4e7a1aae8f"
@@ -715,7 +729,7 @@
         "expiry": "",
         "broker": "136fe26bb42aad53",
         "x": 710,
-        "y": 300,
+        "y": 260,
         "wires": []
     },
     {
@@ -733,7 +747,7 @@
         "expiry": "",
         "broker": "136fe26bb42aad53",
         "x": 730,
-        "y": 360,
+        "y": 320,
         "wires": []
     },
     {
@@ -751,7 +765,7 @@
         "expiry": "",
         "broker": "136fe26bb42aad53",
         "x": 450,
-        "y": 420,
+        "y": 380,
         "wires": []
     },
     {
@@ -764,7 +778,7 @@
         "order": 2,
         "width": "3",
         "height": "1",
-        "emulateClick": false,
+        "emulateClick": true,
         "tooltip": "",
         "color": "",
         "bgcolor": "",
@@ -785,11 +799,12 @@
         "enablePointerup": false,
         "pointerupPayload": "",
         "pointerupPayloadType": "str",
-        "x": 190,
-        "y": 420,
+        "x": 150,
+        "y": 380,
         "wires": [
             [
-                "115ce542002e4d71"
+                "115ce542002e4d71",
+                "b74bf63c26c9e66e"
             ]
         ]
     },
@@ -820,10 +835,11 @@
         "officon": "",
         "offcolor": "",
         "x": 160,
-        "y": 340,
+        "y": 300,
         "wires": [
             [
-                "d4997417eddfa940"
+                "d4997417eddfa940",
+                "b74bf63c26c9e66e"
             ]
         ]
     },
@@ -847,7 +863,7 @@
         "className": "",
         "value": "payload",
         "valueType": "msg",
-        "x": 750,
+        "x": 890,
         "y": 60,
         "wires": []
     },
@@ -871,7 +887,7 @@
         "className": "",
         "value": "payload",
         "valueType": "msg",
-        "x": 740,
+        "x": 880,
         "y": 120,
         "wires": []
     },
@@ -895,7 +911,7 @@
         "className": "",
         "value": "payload",
         "valueType": "msg",
-        "x": 760,
+        "x": 900,
         "y": 180,
         "wires": []
     },
@@ -904,14 +920,14 @@
         "type": "function",
         "z": "1ea3fd3913935cab",
         "name": "temperatura",
-        "func": "\nlet payload = msg.payload;\n\nlet temp = payload.temperature\nlet unit = payload.unidad;\n\nmsg.payload = `${temp} ${unit}`;\n\nreturn msg;",
+        "func": "\nlet payload = JSON.parse(msg.payload);\n\nlet temp = payload.temperature;\nlet unit = payload.unidad;\n\nmsg.payload = `${temp} ${unit}`;\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 510,
+        "x": 650,
         "y": 60,
         "wires": [
             [
@@ -924,14 +940,14 @@
         "type": "function",
         "z": "1ea3fd3913935cab",
         "name": "humedad",
-        "func": "\nlet payload = msg.payload;\n\nlet humd = payload.humidicity\nlet unit = payload.unidad;\n\nmsg.payload = `${humd} ${unit}`;\n\nreturn msg;",
+        "func": "\nlet payload = JSON.parse(msg.payload);\n\nlet humd = payload.humidicity\nlet unit = payload.unidad;\n\nmsg.payload = `${humd} %`;\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 500,
+        "x": 640,
         "y": 120,
         "wires": [
             [
@@ -943,8 +959,137 @@
         "id": "b57a2fa2e6483919",
         "type": "function",
         "z": "1ea3fd3913935cab",
-        "name": "temperatura",
-        "func": "\nlet payload = msg.payload;\n\nlet light = payload.light\nif(light){\n    msg.payload = \"ENCENDIDO\"\n}else{\n    msg.payload = \"APAGADO\"\n}\n\nreturn msg;",
+        "name": "light",
+        "func": "\nlet payload = JSON.parse(msg.payload);\n\nlet light = payload.light\nif(light){\n    msg.payload = \"APAGADO\"\n}else{\n    msg.payload = \"ENCENDIDO\"\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 630,
+        "y": 180,
+        "wires": [
+            [
+                "26cddf90ba78ec30"
+            ]
+        ]
+    },
+    {
+        "id": "0653176f2bfb0a99",
+        "type": "ui-slider",
+        "z": "1ea3fd3913935cab",
+        "group": "185dd488c7348857",
+        "name": "",
+        "label": "delay",
+        "tooltip": "",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "outs": "end",
+        "topic": "topic",
+        "topicType": "msg",
+        "thumbLabel": "true",
+        "showTicks": "always",
+        "min": "2000",
+        "max": "5000",
+        "step": 1,
+        "className": "",
+        "iconPrepend": "",
+        "iconAppend": "",
+        "color": "",
+        "colorTrack": "",
+        "colorThumb": "",
+        "showTextField": false,
+        "x": 170,
+        "y": 480,
+        "wires": [
+            [
+                "8521b631f208e7ac"
+            ]
+        ]
+    },
+    {
+        "id": "8521b631f208e7ac",
+        "type": "ui-gauge",
+        "z": "1ea3fd3913935cab",
+        "name": "delay",
+        "group": "185dd488c7348857",
+        "order": 1,
+        "value": "payload",
+        "valueType": "msg",
+        "width": 3,
+        "height": 3,
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "title": "delay",
+        "alwaysShowTitle": false,
+        "floatingTitlePosition": "top-left",
+        "units": "ms",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "segments": [
+            {
+                "from": "0",
+                "color": "#5cd65c",
+                "text": "",
+                "textType": "label"
+            },
+            {
+                "from": "4",
+                "color": "#ffc800",
+                "text": "",
+                "textType": "label"
+            },
+            {
+                "from": "7",
+                "color": "#ea5353",
+                "text": "",
+                "textType": "label"
+            }
+        ],
+        "min": "2000",
+        "max": "5000",
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "x": 350,
+        "y": 480,
+        "wires": [
+            [
+                "ca0d5c908b2b2020"
+            ]
+        ]
+    },
+    {
+        "id": "53ad5d70bb095732",
+        "type": "mqtt out",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "topic": "ESP32/1/config/delay",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "136fe26bb42aad53",
+        "x": 740,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "ca0d5c908b2b2020",
+        "type": "function",
+        "z": "1ea3fd3913935cab",
+        "name": "delay",
+        "func": "\nlet payload = {\"delay\": msg.payload}\nmsg.payload = payload\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -952,10 +1097,169 @@
         "finalize": "",
         "libs": [],
         "x": 510,
+        "y": 480,
+        "wires": [
+            [
+                "53ad5d70bb095732"
+            ]
+        ]
+    },
+    {
+        "id": "f6e4b68a25f5e95d",
+        "type": "change",
+        "z": "1ea3fd3913935cab",
+        "name": "set",
+        "rules": [
+            {
+                "t": "change",
+                "p": "payload",
+                "pt": "msg",
+                "from": "bool",
+                "fromt": "str",
+                "to": "\"bool\"",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 450,
         "y": 180,
         "wires": [
             [
-                "26cddf90ba78ec30"
+                "b57a2fa2e6483919"
+            ]
+        ]
+    },
+    {
+        "id": "b3eb49837273faaa",
+        "type": "change",
+        "z": "1ea3fd3913935cab",
+        "name": "set",
+        "rules": [
+            {
+                "t": "change",
+                "p": "payload",
+                "pt": "msg",
+                "from": "percentage",
+                "fromt": "str",
+                "to": "\"percentage\"",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 450,
+        "y": 120,
+        "wires": [
+            [
+                "6e27ddc6051fe079"
+            ]
+        ]
+    },
+    {
+        "id": "c0bf08dce2b65f5c",
+        "type": "change",
+        "z": "1ea3fd3913935cab",
+        "name": "set",
+        "rules": [
+            {
+                "t": "change",
+                "p": "payload",
+                "pt": "msg",
+                "from": "Celsius",
+                "fromt": "str",
+                "to": "\"Celsius\"",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 450,
+        "y": 60,
+        "wires": [
+            [
+                "a750f758c91dd438"
+            ]
+        ]
+    },
+    {
+        "id": "4269cb3d946e7051",
+        "type": "mqtt in",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "topic": "ESP32/1/error",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "136fe26bb42aad53",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 170,
+        "y": 620,
+        "wires": [
+            [
+                "e56f572f61407c44"
+            ]
+        ]
+    },
+    {
+        "id": "e56f572f61407c44",
+        "type": "ui-text",
+        "z": "1ea3fd3913935cab",
+        "group": "185dd488c7348857",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Error",
+        "format": "{{msg.payload}}",
+        "layout": "row-center",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#717171",
+        "wrapText": true,
+        "className": "",
+        "value": "payload",
+        "valueType": "msg",
+        "x": 590,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "b74bf63c26c9e66e",
+        "type": "change",
+        "z": "1ea3fd3913935cab",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 420,
+        "y": 680,
+        "wires": [
+            [
+                "e56f572f61407c44"
             ]
         ]
     }
