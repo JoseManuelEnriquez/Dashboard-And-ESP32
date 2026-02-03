@@ -12,8 +12,8 @@ The main goal is to provide an efficient, robust, and low-power solution for env
 The firmware is built on top of **FreeRTOS**, leveraging task management to implement a **Finite State Machine (FSM)**. This FSM has three distinct modes of operation:
 
 - ⚡ **Performance (Active Mode):** In this mode, the ESP32 executes a periodic task that acquires data from the DHT11 (temperature/humidity) and LDR (light) sensors. This telemetry is serialized and published via MQTT to the broker. (Details on the MQTT topics can be found in the "MQTT Configuration" section).
-- ⚙️ **Configuration:** 
-- 💤 **Deep Sleep:** The system enters Deep Sleep mode to minimize power consumption. In this state, the CPU and WiFi are disabled. The device remains dormant until it is manually woken up via an external interrupt (button press), transitioning the system back to performance mode.
+- ⚙️ **Configuration:** In this mode, all system parameters can be modified and configured.
+- 💤 **Sleep:** Stops sensor data collection while keeping the Wi-Fi connection alive to respond to incoming MQTT commands.
 
 ### 🔌 Hardware & Pinout Configuration
 The system connects sensors, actuators, and controls to the ESP32 as follows:
@@ -25,6 +25,8 @@ Visual feedback for the Finite State Machine (FSM) modes.
 | **Performance LED** | 🟢 Green | `GPIO 21` | Indicates the system is active and publishing MQTT data. |
 | **Config LED** | 🟡 Yellow | `GPIO 22` | Indicates the system is in Configuration mode. |
 | **Sleep LED** | 🔴 Red | `GPIO 23` | Brief indicator before entering/during Deep Sleep. |
+| **Configuration LED** | 🔴 Red | `GPIO 25` | when Wi-Fi/MQTT setup is incomplete or pending. |
+| **Connection LED** | 🟢 Green | `GPIO 17` | when Wi-Fi/MQTT setup is ready. |
 
 #### 🕹️ Controls & Sensors (Inputs)
 Peripherals for data acquisition and state management.
@@ -56,17 +58,22 @@ Data sent **FROM** the ESP32 **TO** the Broker.
 
 | Metric | Example topic | Payload Type | Description |
 | :--- | :--- | :---: | :--- |
-| **Temperature** | `ESP32/1/telemetry/temperature` | `Int` | Ambient temperature from DHT11 (°C). |
-| **Humidity** | `ESP32/1/telemetry/humidity` | `Int` | Relative humidity percentage (%). |
-| **Light Level** | `ESP32/1/telemetry/light` | `Bool` | LDR sensor value. |
+| **Temperature** | `ESP32/"id"/telemetry/temperature` | `Int` | Ambient temperature from DHT11 (°C). |
+| **Humidity** | `ESP32/"id"/telemetry/humidity` | `Int` | Relative humidity percentage (%). |
+| **Light Level** | `ESP32/"id"/telemetry/light` | `Bool` | LDR sensor value. |
+| **Error** | `ESP32/"id"/error` | `json: {error:"error description"}` | Reports sensor failures o bad configurations. |
 
 ##### ⚙️ Configuration & Commands (Subscribe)
 Commands sent **FROM** the Broker **TO** the ESP32.
 
 | Command | Topic Suffix | Payload | Action |
 | :--- | :--- | :--- | :--- |
-| **Force Sleep** | `.../config/sleep` | `true` | Forces the device into Deep Sleep immediately. |
-| **Change Mode** | `.../config/mode` | `String` | Manually switches mode (e.g., set to `config`). |
+| **Force Sleep** | `.../config/OFF` | `none` | Forces the device into Sleep immediately. |
+| **Performance Mode** | `.../config/ON` | `none` |  Force the device into performance mode. |
+| **Configuration Mode** | `.../config/CONFIG` | `none` | Force the device into configuration mode. |
+| **Delay configuration** | `.../config/delay` | `json: {delay:value}` | Defines the time delay between sensor data acquisitions (unit: ms).
+
+> **Note:** The minimum sensor reading interval is 2 seconds.
 
 ## 🛠️ Tools & Technologies 
 
