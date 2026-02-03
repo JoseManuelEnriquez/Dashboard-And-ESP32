@@ -257,6 +257,7 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
 
     gpio_set_level(CONFIGURATION_LED, HIGH);
+    gpio_set_level(CONNECTED_LED, LOW);
     wifi_init_sta();
     ESP_LOGI(TAG_WIFI, "WIFI INIT SUCCESS");
     
