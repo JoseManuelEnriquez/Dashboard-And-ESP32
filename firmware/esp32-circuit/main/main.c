@@ -37,6 +37,8 @@
 #define LED_RED GPIO_NUM_23
 #define LED_GREEN GPIO_NUM_21
 #define LED_YELLOW GPIO_NUM_22
+#define CONNECTED_LED GPIO_NUM_17
+#define CONFIGURATION_LED GPIO_NUM_25
 #define CHANGE_BUTTON GPIO_NUM_26
 #define OFF_BUTTON GPIO_NUM_27
 #define DHT11_SENSOR GPIO_NUM_14
@@ -208,10 +210,6 @@ void vReadSensorTask(void* pvParameters)
                 }
             }
             break;
-            case configuration:
-            break;
-            case off:
-            break;
             default:
             break;
         }
@@ -258,6 +256,7 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    gpio_set_level(CONFIGURATION_LED, HIGH);
     wifi_init_sta();
     ESP_LOGI(TAG_WIFI, "WIFI INIT SUCCESS");
     
@@ -299,7 +298,7 @@ static esp_err_t leds_config()
     // Configuracion de pines
     gpio_config_t out_pin = {
         .intr_type = GPIO_INTR_DISABLE,
-        .pin_bit_mask = (1ULL << LED_RED | 1ULL << LED_GREEN | 1ULL << LED_YELLOW),
+        .pin_bit_mask = (1ULL << LED_RED | 1ULL << LED_GREEN | 1ULL << LED_YELLOW | 1ULL << CONFIGURATION_LED | 1ULL << CONNECTED_LED),
         .mode = GPIO_MODE_OUTPUT,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .pull_up_en = GPIO_PULLUP_DISABLE
@@ -374,14 +373,19 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_BEFORE_CONNECT");
         break;
     case MQTT_EVENT_CONNECTED: 
+        gpio_set_level(CONFIGURATION_LED, LOW);
+        gpio_set_level(CONNECTED_LED, HIGH);
         mqtt_connected = 1;
         msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/ON", 0);
         msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/SLEEP", 0);
+        msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/CONFIG", 0);
         msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/delay", 0);
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_CONNECTED");
         break;
     case MQTT_EVENT_DISCONNECTED:
         mqtt_connected = 0;
+        gpio_set_level(CONFIGURATION_LED, HIGH);
+        gpio_set_level(CONNECTED_LED, LOW);
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_DISCONNECTED");
         break;
      case MQTT_EVENT_PUBLISHED:
@@ -394,7 +398,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_DATA");
 
-        char topic[30];
+        char topic[40];
         sprintf(topic, "%.*s", event->topic_len,event->topic);
 
         /* 
@@ -411,24 +415,26 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 }
                 Si value < MIN_DELAY, salta un error "INCORRECT DELAY"
         */
-        if(strcmp(topic,"ESP32/1/config/ON"))
+        ESP_LOGI(TAG_MQTT, "TOPIC: %.*s", event->topic_len, event->topic);
+        if(strcmp(topic, "ESP32/1/config/ON") == 0)
         {
             currentState = performance;
-        }else if(strcmp(topic, "ESP32/1/config/configuration"))
+        }else if(strcmp(topic, "ESP32/1/config/CONFIG") == 0)
         {
             currentState = configuration;
-        }else if(strcmp(topic, "ESP32/1/config/SLEEP"))
+        }else if(strcmp(topic, "ESP32/1/config/SLEEP") == 0)
         {
             currentState = off;
-        }else if(strcmp(topic, "ESP32/1/config/delay"))
+        }else if(strcmp(topic, "ESP32/1/config/delay") == 0)
         {
             if(currentState == configuration){
                 int delay_receive;
                 const char* json_str = event->data;
                 int result = json_scanf(json_str, strlen(json_str), "{delay: %d}", &delay_receive);
 
-                if(result > 0 && delay_receive > MIN_DELAY){    
+                if(result > 0 && delay_receive >= MIN_DELAY){    
                     delay = delay_receive;
+                    ESP_LOGI(TAG_MQTT, "DELAY CONFIGURATED: %d", delay);
                 }else{
                     char buffer[128];
                     struct json_out out_error = JSON_OUT_BUF(buffer, sizeof(buffer));
