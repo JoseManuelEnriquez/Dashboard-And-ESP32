@@ -88,3 +88,5 @@ This project was developed using the official Espressif framework within VS Code
 ## 🚀 Demo
 
 See the project in action:
+
+https://github.com/user-attachments/assets/1468c1e0-405c-44dc-9d9b-48d370249971
