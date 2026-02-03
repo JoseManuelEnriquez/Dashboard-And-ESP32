@@ -71,7 +71,7 @@ typedef enum
 {
     performance,
     configuration,
-    off
+    idle
 } State_t;
 
 /**
@@ -84,7 +84,7 @@ typedef struct{
 }data_t;
 
 static QueueHandle_t isr_handler_queue = NULL; // Para despertar la tarea ChangeState
-static State_t currentState = off; 
+static State_t currentState = idle; 
 esp_mqtt_client_handle_t client; // client debe ser global para poder publicar desde publish_data()
 static EventGroupHandle_t s_wifi_event_group;
 static int s_retry_num = 0;
@@ -147,11 +147,11 @@ void vControlFSMTask(void* pvParameters)
         case configuration:
             set_io_level(LOW, HIGH, LOW); // RED = OFF, YELLOW = HIGH, GREEN = LOW
             break;
-        case off:
+        case idle:
             set_io_level(HIGH, LOW, LOW); // RED = HIGH, YELLOW = OFF, GREEN = LOW
             break;
         default:
-            currentState = off;
+            currentState = idle;
             break;
         }
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -165,7 +165,7 @@ static void vChangeStateTask(void* arg)
     for (;;) {
         if (xQueueReceive(isr_handler_queue, &io_num, portMAX_DELAY)) {
             if(io_num == OFF_BUTTON){
-                currentState = off;
+                currentState = idle;
             }else{
                 if(currentState == performance){
                     currentState = configuration;
@@ -425,7 +425,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             currentState = configuration;
         }else if(strcmp(topic, "ESP32/1/config/SLEEP") == 0)
         {
-            currentState = off;
+            currentState = idle;
         }else if(strcmp(topic, "ESP32/1/config/delay") == 0)
         {
             if(currentState == configuration){
