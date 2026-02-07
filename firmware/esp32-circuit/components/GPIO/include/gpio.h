@@ -11,9 +11,9 @@
 extern const char* TAG_SENSOR;
 extern const char* TAG_CONFIG;
 
-void set_io_level(uint32_t level_red, uint32_t level_yellow, uint32_t level_green);
-esp_err_t button_config();
-esp_err_t leds_config();
-esp_err_t ldr_config();
+typedef void(*ISR)(void* args);
+
+esp_err_t gpio_init(uint32_t intr_type, uint32_t mode, uint32_t bit_mask, uint32_t pull_down, uint32_t pull_up);
+esp_err_t gpio_config_intr(uint32_t pin, ISR isr);
 
 #endif
