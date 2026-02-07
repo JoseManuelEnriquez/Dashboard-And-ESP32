@@ -7,4 +7,5 @@ idf_component_register(SRCS "main.c"
                     REQUIRES esp_wifi
                     REQUIRES nvs_flash
                     REQUIRES esp_system
+                    REQUIRES Wifi
                     )
