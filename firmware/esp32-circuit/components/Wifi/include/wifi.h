@@ -13,9 +13,7 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
-EventGroupHandle_t s_wifi_event_group;
-const char* TAG_WIFI = "WIFI";
-static int s_retry_num;
+extern const char* TAG_WIFI;
 
 void wifi_init_sta();
 void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
