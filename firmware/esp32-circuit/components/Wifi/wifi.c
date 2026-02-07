@@ -1,11 +1,13 @@
 #include "wifi.h"
 
-static EventGroupHandle_t s_wifi_event_group;
+EventGroupHandle_t s_wifi_event_group;
+static WifiCallback_t callback_private = NULL;
 static int s_retry_num;
 const char *TAG_WIFI = "WIFI";
 
-void wifi_init_sta()
+void wifi_init_sta(WifiCallback_t callback)
 {
+    callback_private = callback;
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
@@ -27,7 +29,10 @@ void wifi_init_sta()
     esp_event_handler_instance_t instance_got_ip;
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, &instance_any_id));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL, &instance_got_ip));
-
+    
+    /**
+     * Variables como CONFIG_WIFI_SSID, CONFIG_WIFI_PASS son variables definidas en un archivo privado Kconfig por seguridad.
+     */
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = CONFIG_WIFI_SSID,
@@ -45,10 +50,19 @@ void wifi_init_sta()
 
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG_WIFI, "CONNECTED");
+        if(callback_private != NULL){
+            callback_private(1);
+        }
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGE(TAG_WIFI, "CONNECTED FAILED");
+        if(callback_private != NULL){
+            callback_private(0);
+        }
     } else {
         ESP_LOGE(TAG_WIFI, "NO EXPECTED EVENT");
+        if(callback_private != NULL){
+            callback_private(0);
+        }
     }
 }
 
