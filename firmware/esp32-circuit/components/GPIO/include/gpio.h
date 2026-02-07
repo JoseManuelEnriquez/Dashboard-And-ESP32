@@ -7,10 +7,6 @@
 #define LOW 0
 #define HIGH 1
 
-// Etiquetas para la funcion ESP_LOG
-extern const char* TAG_SENSOR;
-extern const char* TAG_CONFIG;
-
 typedef void(*ISR)(void* args);
 
 esp_err_t gpio_init(uint32_t intr_type, uint32_t mode, uint32_t bit_mask, uint32_t pull_down, uint32_t pull_up);

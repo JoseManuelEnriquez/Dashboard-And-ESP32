@@ -26,7 +26,19 @@ a 2 segundos
 */
 #define MIN_DELAY 2000
 
-
+void callback_buttons(uint32_T io_num){
+    if(io_num == OFF_BUTTON){
+        currentState = idle;
+    }else{
+        if(currentState == performance){
+            currentState = configuration;
+        }else if(currentState == configuration){
+            currentState = performance;
+        }else{
+            currentState = performance;
+        }
+    }
+}
 
 
 /**
@@ -88,27 +100,6 @@ void vControlFSMTask(void* pvParameters)
     vTaskDelete(NULL);
 }
 
-static void vChangeStateTask(void* arg)
-{
-    uint32_t io_num;
-    for (;;) {
-        if (xQueueReceive(isr_handler_queue, &io_num, portMAX_DELAY)) {
-            if(io_num == OFF_BUTTON){
-                currentState = idle;
-            }else{
-                if(currentState == performance){
-                    currentState = configuration;
-                }else if(currentState == configuration){
-                    currentState = performance;
-                }else{
-                    currentState = performance;
-                }
-            }
-        }
-    }
-    vTaskDelete(NULL);
-}
-
 void vReadSensorTask(void* pvParameters)
 {
     data_t data;
@@ -148,7 +139,6 @@ void vReadSensorTask(void* pvParameters)
 }
 
  
-
 /**
  * -------------------------------------------------
  * MAIN
@@ -157,15 +147,7 @@ void vReadSensorTask(void* pvParameters)
 void app_main(void)
 {
     // ------ CONFIGURATION ------
-    ESP_ERROR_CHECK(leds_config());
-    ESP_ERROR_CHECK(ldr_config());
-    ESP_ERROR_CHECK(button_config());
-    ESP_ERROR_CHECK(dht11_init(DHT11_SENSOR));
-    ESP_LOGI(TAG_CONFIG, "HARDWARE INIT SUCCESS\n");
-    isr_handler_queue = xQueueCreate(10, sizeof(uint32_t));
-
-    gpio_set_level(CONFIGURATION_LED, HIGH);
-    gpio_set_level(CONNECTED_LED, LOW);
+    // ESP_LOGI(TAG_CONFIG, "HARDWARE INIT SUCCESS\n");
     wifi_init_sta();
     ESP_LOGI(TAG_WIFI, "WIFI INIT SUCCESS");
     
@@ -177,12 +159,6 @@ void app_main(void)
     
     // Lee los sensores en modo performance.
     xTaskCreate(vReadSensorTask,"Read Sensor Task", 4096, NULL, 6, NULL); 
-    
-    // Despertada por la ISR para cambiar de estado. Prioridad maxima para respuesta inmediata
-    xTaskCreate(vChangeStateTask,"Change State Task", 4096, NULL, 7, NULL);
-    
-    // Tarea necesaria para hacer debug de los estados y caracteristicas de todas las tareas del sistema
-    // xTaskCreate(vMonitorTask,"Monitor Task",4096, NULL, , NULL);
 }
 
 
