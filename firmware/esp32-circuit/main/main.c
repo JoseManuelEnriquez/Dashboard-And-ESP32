@@ -12,7 +12,6 @@
 #include <inttypes.h>
 #include "DHT11.h"
 #include "wifi.h"
-#include "GPIO.h"
 #include "communications.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -77,6 +76,7 @@ void vMonitorTask(void *pvParameters) {
     }
 }
 
+/*
 void vControlFSMTask(void* pvParameters)
 {
     for(;;){
@@ -137,7 +137,7 @@ void vReadSensorTask(void* pvParameters)
     }
     vTaskDelete(NULL);
 }
-
+*/
  
 /**
  * -------------------------------------------------
@@ -148,17 +148,17 @@ void app_main(void)
 {
     // ------ CONFIGURATION ------
     // ESP_LOGI(TAG_CONFIG, "HARDWARE INIT SUCCESS\n");
-    wifi_init_sta();
-    ESP_LOGI(TAG_WIFI, "WIFI INIT SUCCESS");
+    //wifi_init_sta();
+    //ESP_LOGI(TAG_WIFI, "WIFI INIT SUCCESS");
     
-    mqtt_app_start();
+    //mqtt_app_start();
     // ------ CREATION TASKS ------
 
     // Gestiona los estados de la FSM
-    xTaskCreate(vControlFSMTask,"FSM Control Task", 2048, NULL, 6, NULL); 
+    //xTaskCreate(vControlFSMTask,"FSM Control Task", 2048, NULL, 6, NULL); 
     
     // Lee los sensores en modo performance.
-    xTaskCreate(vReadSensorTask,"Read Sensor Task", 4096, NULL, 6, NULL); 
+    //xTaskCreate(vReadSensorTask,"Read Sensor Task", 4096, NULL, 6, NULL); 
 }
 
 

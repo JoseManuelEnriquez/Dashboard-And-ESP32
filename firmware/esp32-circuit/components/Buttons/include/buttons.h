@@ -1,18 +1,19 @@
 #ifndef BUTTONS_H
 #define BUTTONS_H
 
-#include "GPIO.h"
-#include "esp_driver_gpio.h"
+#include "gpio.h"
+#include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "board_definition.h"
 
-typedef struct{
+typedef enum{
     BUTTON_OK,
     BUTTON_ERR_INVALID
-}Button_err_t
+}Button_err_t;
 
-typedef void(*button_callback)(uitn32_t io_num);
+typedef void(*button_callback)(uint32_t io_num);
 
 Button_err_t buttons_init(button_callback callback);
 void vButtonISRTask(void* arg);

@@ -2,7 +2,9 @@
 #define GPIO_H
 
 #include "esp_log.h"
-#include "esp_driver_gpio"
+#include "driver/gpio.h"
+
+#define ESP_INTR_FLAG_DEFAULT 0
 
 #define LOW 0
 #define HIGH 1

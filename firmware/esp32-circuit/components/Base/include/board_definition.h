@@ -12,7 +12,4 @@
 #define LDR_SENSOR GPIO_NUM_19
 #define ID 1  
 
-
-#define ESP_INTR_FLAG_DEFAULT 0 // TIENE QUE ESTAR EN BUTTONS
-
 #endif
