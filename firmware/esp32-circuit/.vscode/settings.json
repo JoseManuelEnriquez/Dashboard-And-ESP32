@@ -16,5 +16,6 @@
     "--query-driver=**",
     "--compile-commands-dir=/home/jose/workspace/DashBoardAndESP32/firmware/esp32-circuit/build"
   ],
-  "idf.flashType": "UART"
+  "idf.flashType": "UART",
+  "idf.currentSetup": "/home/jose/esp/v5.5.1/esp-idf"
 }
