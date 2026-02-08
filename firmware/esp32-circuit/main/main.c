@@ -16,6 +16,7 @@
 #include "leds.h"
 #include "communications.h"
 #include "buttons.h"
+#include "sensors.h"
 #include "events.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
