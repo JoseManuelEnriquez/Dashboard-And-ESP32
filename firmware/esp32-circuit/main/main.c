@@ -54,9 +54,7 @@ typedef enum
     idle
 } State_t;
 
-static State_t currentState = idle; 
-
-
+volatile static State_t currentState = idle; 
 
 /**
  * -------------------------------------------------

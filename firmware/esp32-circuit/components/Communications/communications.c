@@ -1,5 +1,6 @@
 #include "communications.h"
 
+mqtt_callback callback_private;
 esp_mqtt_client_handle_t client; // client debe ser global para poder publicar desde publish_data()
 const char* TAG_MQTT = "MQTT";
 
@@ -14,9 +15,6 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_BEFORE_CONNECT");
         break;
     case MQTT_EVENT_CONNECTED: 
-        // gpio_set_level(CONFIGURATION_LED, LOW);
-        // gpio_set_level(CONNECTED_LED, HIGH);
-        // mqtt_connected = 1;
         msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/ON", 0);
         msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/SLEEP", 0);
         msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/CONFIG", 0);
@@ -24,9 +22,6 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_CONNECTED");
         break;
     case MQTT_EVENT_DISCONNECTED:
-        // mqtt_connected = 0;
-        // gpio_set_level(CONFIGURATION_LED, HIGH);
-        // gpio_set_level(CONNECTED_LED, LOW);
         ESP_LOGI(TAG_MQTT, "MQTT_EVENT_DISCONNECTED");
         break;
      case MQTT_EVENT_PUBLISHED:
@@ -57,38 +52,33 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
                 Si value < MIN_DELAY, salta un error "INCORRECT DELAY"
         */
         ESP_LOGI(TAG_MQTT, "TOPIC: %.*s", event->topic_len, event->topic);
+        mqtt_message_t message;
         if(strcmp(topic, "ESP32/1/config/ON") == 0)
         {
-            currentState = performance;
+            message.topic = MQTT_ON;
+            message.status = MQTT_OK;
+            callback_private(message);
         }else if(strcmp(topic, "ESP32/1/config/CONFIG") == 0)
         {
-            currentState = configuration;
+            message.topic = MQTT_CONFIG;
+            message.status = MQTT_OK;
+            callback_private(message);
         }else if(strcmp(topic, "ESP32/1/config/SLEEP") == 0)
         {
-            currentState = idle;
+            message.topic = MQTT_SLEEP;
+            message.status = MQTT_OK;
+            callback_private(message);
         }else if(strcmp(topic, "ESP32/1/config/delay") == 0)
         {
-            if(currentState == configuration){
-                int delay_receive;
-                const char* json_str = event->data;
-                int result = json_scanf(json_str, strlen(json_str), "{delay: %d}", &delay_receive);
-
-                if(result > 0 && delay_receive >= MIN_DELAY){    
-                    // delay = delay_receive;
-                    ESP_LOGI(TAG_MQTT, "DELAY CONFIGURATED: %d", delay);
-                }else{
-                    char buffer[128];
-                    struct json_out out_error = JSON_OUT_BUF(buffer, sizeof(buffer));
-                    json_printf(&out_error, "{id: %d, error: %s}", ID, "CONFIGURATION DELAY FAILED");
-                    msg_id = esp_mqtt_client_publish(client, "ESP32/1/error", buffer, 0, 0, 0);
-                    ESP_LOGE(TAG_MQTT, "READ TOPIC DELAY FAILED");
-                }
-            }else{
-                char buffer[128];
-                struct json_out out_error = JSON_OUT_BUF(buffer, sizeof(buffer));
-                json_printf(&out_error, "{id: %d, error: %s}", ID, "INCORRECT MODE");
-                msg_id = esp_mqtt_client_publish(client, "ESP32/1/error", buffer, 0, 0, 0);
-            }
+            message.topic = MQTT_DELAY;
+            message.status = MQTT_OK;
+            message.data = event->data;
+            callback_private(message);
+            /*
+            const char* json_str = event->data;
+            int delay_receive;
+            int result = json_scanf(json_str, strlen(json_str), "{delay: %d}", &delay_receive);
+            */
         }
         break;
     case MQTT_EVENT_ERROR:
@@ -100,8 +90,9 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     }
 }
 
-void mqtt_app_start()
+void mqtt_app_start(mqtt_callback callback)
 {
+    callback_private = callback;
     /*
         No se configura id_cliente porque usa por defecto: ESP32_CHIPID% donde CHIPID% son los
         ultimos 3 bytes(hex) de la MAC.
