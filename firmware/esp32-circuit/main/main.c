@@ -25,7 +25,7 @@
 static gEventStruct* events_variables = NULL;
 
 void vControlFSMTask(void* pvParameters)
-{s
+{
     State_t previousState = -1;
 
     for(;;){
