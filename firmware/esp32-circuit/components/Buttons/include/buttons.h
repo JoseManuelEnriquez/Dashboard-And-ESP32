@@ -1,6 +1,13 @@
 #ifndef BUTTONS_H
 #define BUTTONS_H
 
+/**
+ * @file buttons.h
+ * @brief Módulo para inicializacion, configuracion y uso de botones.
+ * @author Jose Manuel Enriquez Baena
+ * @date 08-02-2026
+ */
+
 #include "gpio.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"

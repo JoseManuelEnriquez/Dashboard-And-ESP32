@@ -1,13 +1,30 @@
+/**
+ * @file buttons.c
+ * @brief Implementación de la inicializacion, configuracion y uso de botones
+ */
+
 #include "buttons.h"
 
-static button_callback callback_private = NULL;
-static QueueHandle_t isr_handler_queue;
+/**
+ * Variables globales necesarias por las ISR y la tarea para manejar interrupciones.
+ * La callback es llamada por la tarea cuando alguna ISR la despierte.
+ * isr_handler_queue es la cola que bloqueara la tarea hasta que reciba algun dato.
+ */
+static button_callback callback_private = NULL; 
+static QueueHandle_t isr_handler_queue; 
 
 /**
  * -------------------------------------------------
  * FUNCIONES INTERRUPCIONES
  * -------------------------------------------------
+ * 
+ * Existen dos ISR, una para cada boton del sistema:
+ * - CHANGE_BUTTON: Este boton cambia del estado performance al configuracion y viceversa.
+ * - OFF_BUTTON: Este boton cambia de cualquier estado al idle.
+ * 
+ * La ISR manda a la cola que despierta la tarea el numero del pin del boton que genera la interrupcion
  */
+
 void vButtonISRTask(void* arg)
 {
     uint32_t io_num;
