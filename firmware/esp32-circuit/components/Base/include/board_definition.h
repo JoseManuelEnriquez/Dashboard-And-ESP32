@@ -12,4 +12,11 @@
 #define LDR_SENSOR GPIO_NUM_19
 #define ID 1  
 
+/*
+Hay que definir un delay minimo para la tarea ReadSensor porque el sensor DHT11 no puede hacer dos lecturas consecutivas
+sin haber pasado mas de 2 segundos. Como el delay se puede configurar, hay que controlar que no configuren un delay menor 
+a 2 segundos
+*/
+#define MIN_DELAY 2000
+
 #endif

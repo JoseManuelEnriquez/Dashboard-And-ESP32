@@ -74,11 +74,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
             message.status = MQTT_OK;
             message.data = event->data;
             callback_private(message);
-            /*
-            const char* json_str = event->data;
-            int delay_receive;
-            int result = json_scanf(json_str, strlen(json_str), "{delay: %d}", &delay_receive);
-            */
+          
         }
         break;
     case MQTT_EVENT_ERROR:
