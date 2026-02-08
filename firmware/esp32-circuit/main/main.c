@@ -20,6 +20,8 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+volatile QueueHandle_t queue_event_mqtt = NULL;
+
 void vControlFSMTask(void* pvParameters)
 {
     State_t previousState = -1;

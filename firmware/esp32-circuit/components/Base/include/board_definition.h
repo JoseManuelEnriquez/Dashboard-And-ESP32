@@ -1,6 +1,8 @@
 #ifndef BOARD_DEFINITION_H
 #define BOARD_DEFINITION_H
 
+#include "driver/gpio.h"
+
 #define LED_RED GPIO_NUM_23
 #define LED_GREEN GPIO_NUM_21
 #define LED_YELLOW GPIO_NUM_22
