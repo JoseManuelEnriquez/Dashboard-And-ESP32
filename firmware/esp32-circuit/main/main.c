@@ -15,6 +15,7 @@
 #include "wifi.h"
 #include "leds.h"
 #include "communications.h"
+#include "buttons.h"
 #include "events.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -27,6 +28,7 @@ el main.
 */
 volatile QueueHandle_t queue_event_mqtt = NULL;
 volatile int wifi_connected = 0;
+volatile State_t currentState = idle;
 
 void vControlFSMTask(void* pvParameters)
 {
@@ -125,7 +127,7 @@ void app_main(void)
     led_on(CONFIGURATION_LED);
     led_off(CONNECTED_LED);
 
-    mqtt_app_start();
+    mqtt_app_start(callback_event_mqtt);
 
     /*
     !! OJO !! Pongo por defecto 4096 pero habria que optimizar el valor para no desperdiciar memoria.
