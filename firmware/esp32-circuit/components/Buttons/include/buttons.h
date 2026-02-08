@@ -17,7 +17,6 @@ typedef void(*button_callback)(uint32_t io_num);
 
 Button_err_t buttons_init(button_callback callback);
 void vButtonISRTask(void* arg);
-void IRAM_ATTR gpio_isr_change_button_handler(void* args);
-void IRAM_ATTR gpio_isr_off_button_handler(void* args);
+
 
 #endif
