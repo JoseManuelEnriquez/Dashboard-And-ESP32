@@ -23,8 +23,10 @@
 #include "freertos/queue.h"
 
 /*
- Son variables definidas como extern en el main.h para que el modulo Events pueda comunicarse con
+Son flags definidas como extern en el main.h para que el modulo Events pueda comunicarse con
 el main.
+
+Se definen en volatile por evitar errores de concurrencia.
 */
 volatile QueueHandle_t queue_event_mqtt = NULL;
 volatile int wifi_connected = 0;
@@ -100,24 +102,29 @@ void vEventMQTT_Task(void* pvParameters){
  */
 void app_main(void)
 {
-    // ----- Configuration ----- // 
-
     /* 
-    Inicializamos la cola necesaria para que la funcion callback definida en events.c pueda despertar
-    la tarea vEventMQTT_Task y recoger los datos provenientes de la subscripcion.
+    La interfaz de los modulos estan diseñados con el paradigma de orientado a eventos, 
+    respondiendo con funciones callbacks definidas en el modulo events.h que tiene metodos de sincronizacion
+    necesarios para conseguir el maximo desacoplamiento.
+
+    Los modulos que necesitan un callback son: 
+    - BUTTONS: Necesario para las interrupciones cuando se pulsa el boton.
+    - WIFI: para conocer si la conexion se ha realizado.
+    - MQTT: para recibir los datos de los topicos en los que esta suscrito el ESP32.
+    Por tanto, sus funciones init reciben una funcion segun esta establecido en su interfaz implementada.
     */
+
+    // ----- Configuration ----- // 
     queue_event_mqtt = xQueueCreate(10, sizeof(mqtt_message_t));
     led_err_t err_led = led_init();
     Button_err_t err_button = buttons_init(callback_buttons);
     wifi_init_sta(callback_init_wifi);
     
-    /*
-    Esperamos hasta que la funcion callback definida en events.h, cambie la variable a 1, 
-    indicando que la conexion al punto de acceso ha sido realizada. 
-    
-    Debemos de esperar que tengamos conexion al punto de acceso porque sino no podremos 
-    conectarnos al broker. Es decir, sin cumplir este paso no tendria sentido continuar con 
-    la ejecucion del main y por eso hacemos polling.
+        /* * BLOQUEO POR DEPENDENCIA DE RED
+    * Se realiza un polling sobre la bandera actualizada por el callback de Wi-Fi (events.h).
+    * Esta espera activa es necesaria ya que la conexión al Broker MQTT depende 
+    * estrictamente de la obtención previa de una dirección IP. 
+    * Se detiene el flujo del main para garantizar la integridad de la secuencia de red.
     */
 
     led_on(CONFIGURATION_LED);
