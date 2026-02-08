@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include "main.h"
 #include "DHT11.h"
 #include "wifi.h"
 #include "leds.h"
@@ -23,23 +22,15 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-/*
-Son flags definidas como extern en el main.h para que el modulo Events pueda comunicarse con
-el main.
-
-Se definen en volatile por evitar errores de concurrencia.
-*/
-volatile QueueHandle_t queue_event_mqtt = NULL;
-volatile int wifi_connected = 0;
-volatile State_t currentState = idle;
+static gEventStruct* events_variables = NULL;
 
 void vControlFSMTask(void* pvParameters)
 {
     State_t previousState = -1;
 
     for(;;){
-        if(currentState != previousState){
-            switch (currentState)
+        if(events_variables->currentState != previousState){
+            switch (events_variables->currentState)
             {
                 case performance:
                 // Encender lectura de sensores
@@ -53,7 +44,7 @@ void vControlFSMTask(void* pvParameters)
                 default:
                     break;
             }
-            previousState = currentState;
+            previousState = events_variables->currentState;
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
@@ -64,20 +55,20 @@ void vEventMQTT_Task(void* pvParameters){
     mqtt_message_t message;
 
     for(;;){
-        xQueueReceive(queue_event_mqtt, &message, portMAX_DELAY);
+        xQueueReceive(events_variables->queue_event_mqtt, &message, portMAX_DELAY);
         switch (message.topic)
         {
             case MQTT_ON:
-                currentState = performance;
+                events_variable->currentState = performance;
             break;
             case MQTT_SLEEP:
-                currentState = idle;
+                events_variable->currentState = idle;
             break;
             case MQTT_CONFIG:
-                currentState = configuration;
+                events_variable->currentState = configuration;
             break;
             case MQTT_DELAY:
-                if(currentState == configuration){
+                if(events_variables->currentState == configuration){
                     const char* json_str = message.data;
                     int delay_receive;
                     int result = json_scanf(json_str, strlen(json_str), "{delay: %d}", &delay_receive);
@@ -105,8 +96,10 @@ void app_main(void)
 {
     /* 
     La interfaz de los modulos estan diseñados con el paradigma de orientado a eventos, 
-    respondiendo con funciones callbacks definidas en el modulo events.h que tiene metodos de sincronizacion
-    necesarios para conseguir el maximo desacoplamiento.
+    respondiendo con funciones callbacks definidas en el modulo events.h. 
+
+    El modulo events.h define un tipo para guardar variables globales para sincronizarse con el main
+    usando un patron singleton para mantener el desacoplamiento entre el main y events.
 
     Los modulos que necesitan un callback son: 
     - BUTTONS: Necesario para las interrupciones cuando se pulsa el boton.
@@ -116,7 +109,9 @@ void app_main(void)
     */
 
     // ----- Configuration ----- // 
-    queue_event_mqtt = xQueueCreate(10, sizeof(mqtt_message_t));
+    
+    events_init();
+    events_variables = get_control_variables();
     led_err_t err_led = led_init();
     Button_err_t err_button = buttons_init(callback_buttons);
     wifi_init_sta(callback_init_wifi);
@@ -130,7 +125,7 @@ void app_main(void)
 
     led_on(CONFIGURATION_LED);
     led_off(CONNECTED_LED);
-    while(wifi_connected == 0);
+    while(events_variables->wifi_connected == 0);
 
     led_on(CONFIGURATION_LED);
     led_off(CONNECTED_LED);
