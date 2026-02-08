@@ -23,6 +23,6 @@ void callback_init_wifi(int conectado){
 }
 
 void callback_event_mqtt(mqtt_message_t message){
-    xQueueSend(queue_event_mqtt, message, NULL);
+    xQueueSend(queue_event_mqtt, &message, NULL);
 }
 
