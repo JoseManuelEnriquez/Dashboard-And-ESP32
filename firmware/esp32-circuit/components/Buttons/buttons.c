@@ -1,7 +1,7 @@
 #include "buttons.h"
 
-button_callback callback_private = NULL;
-QueueHandle_t isr_handler_queue;
+static button_callback callback_private = NULL;
+static QueueHandle_t isr_handler_queue;
 
 /**
  * -------------------------------------------------

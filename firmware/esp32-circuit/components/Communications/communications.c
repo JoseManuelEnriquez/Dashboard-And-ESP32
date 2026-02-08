@@ -1,11 +1,11 @@
 #include "communications.h"
 
 static mqtt_callback callback_private;
-esp_mqtt_client_handle_t client; // client debe ser global para poder publicar desde publish_data()
-const char* TAG_MQTT = "MQTT";
-const char* broker_uri = CONFIG_BROKER_URI;
-const char* username = CONFIG_USERNAME;
-const char* password = CONFIG_PASSWORD;
+static esp_mqtt_client_handle_t client; // client debe ser global para poder publicar desde publish_data()
+const static char* TAG_MQTT = "MQTT";
+const static char* broker_uri = CONFIG_BROKER_URI;
+const static char* username = CONFIG_USERNAME;
+const static char* password = CONFIG_PASSWORD;
 
 void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {

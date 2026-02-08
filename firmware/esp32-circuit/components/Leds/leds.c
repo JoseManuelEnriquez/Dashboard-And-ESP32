@@ -14,17 +14,3 @@ void led_on(uint32_t pin){
 void led_off(uint32_t pin){
     gpio_set_level(pin, LOW);
 }
-
-/*
-Esta funcion es necesaria para los leds que se encienden para indicar si hay conexion o no. Se manda por parametros
-al realizar el init de wifi.
-*/
-void callback_wifi(int connect){
-    if(connect == 1){
-        gpio_set_level(CONNECTED_LED, HIGH);
-        gpio_set_level(CONFIGURATION_LED, LOW);
-    }else{
-        gpio_set_level(CONFIGURATION_LED, HIGH);
-        gpio_set_level(CONNECTED_LED, LOW);
-    }
-}

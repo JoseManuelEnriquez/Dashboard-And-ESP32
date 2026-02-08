@@ -1,9 +1,9 @@
 #include "wifi.h"
 
-EventGroupHandle_t s_wifi_event_group;
+static EventGroupHandle_t s_wifi_event_group;
 static WifiCallback_t callback_private = NULL;
 static int s_retry_num;
-const char *TAG_WIFI = "WIFI";
+const static char *TAG_WIFI = "WIFI";
 
 void wifi_init_sta(WifiCallback_t callback)
 {

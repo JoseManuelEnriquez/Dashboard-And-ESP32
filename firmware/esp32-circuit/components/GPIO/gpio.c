@@ -1,7 +1,7 @@
 #include "gpio.h"
 
-const char* TAG_SENSOR = "SENSOR";
-const char* TAG_CONFIG = "CONFIG";
+const static char* TAG_SENSOR = "SENSOR";
+const static char* TAG_CONFIG = "CONFIG";
 
 esp_err_t gpio_init(uint32_t intr_type, uint32_t mode, uint32_t bit_mask, uint32_t pull_down, uint32_t pull_up){
     gpio_config_t io_config = {
