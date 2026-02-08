@@ -35,7 +35,7 @@ Button_err_t buttons_init(button_callback callback){
     callback_private = callback;
     uint32_t bitmask = (1ULL << CHANGE_BUTTON | 1ULL << OFF_BUTTON);
     
-    esp_err_t err_init = gpio_init(GPIO_INTR_LOW_LEVEL, GPIO_MODE_INPUT, bitmask, GPIO_PULLUP_ENABLE, GPIO_PULLDOWN_DISABLE);
+    esp_err_t err_init = gpio_init(GPIO_INTR_LOW_LEVEL, GPIO_MODE_INPUT, bitmask, GPIO_PULLDOWN_DISABLE, GPIO_PULLUP_ENABLE);
     esp_err_t err_intr_change = gpio_config_intr(CHANGE_BUTTON, gpio_isr_change_button_handler);
     esp_err_t err_intr_off = gpio_config_intr(OFF_BUTTON, gpio_isr_off_button_handler);
     
