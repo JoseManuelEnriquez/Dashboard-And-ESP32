@@ -8,6 +8,9 @@
 #include "freertos/queue.h"
 #include "board_definition.h"
 
+/**
+ * Enum para poder definir los diferentes tipos de errores que puede devolver las funciones.
+ */
 typedef enum{
     BUTTON_OK,
     BUTTON_ERR_INVALID
@@ -15,7 +18,21 @@ typedef enum{
 
 typedef void(*button_callback)(uint32_t io_num);
 
+/**
+ * @brief Inicializa los botones
+ * @param callback Funcion callback que se llama cuando ocurre una interrupcion
+ * @details Inicializa los pines GPIO correspondientes definidos en board_definition.h y las interrupciones
+ *          que utiliza el sistema. 
+ * 
+ *          Para las interrupciones se usa el concepto de Deferred Interrupt Processing.
+ *          Se crea una tarea vButtonISRTask que estara bloqueada hasta que alguna ISR la despierte. En
+ *          esta tarea ejecuta la callback que se pasa por parametros.
+ */
 Button_err_t buttons_init(button_callback callback);
+
+/**
+ * @brief Tarea que llama a la callback
+ */
 void vButtonISRTask(void* arg);
 
 
