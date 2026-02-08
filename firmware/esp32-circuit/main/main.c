@@ -25,7 +25,7 @@
 static gEventStruct* events_variables = NULL;
 
 void vControlFSMTask(void* pvParameters)
-{
+{s
     State_t previousState = -1;
 
     for(;;){
@@ -59,13 +59,13 @@ void vEventMQTT_Task(void* pvParameters){
         switch (message.topic)
         {
             case MQTT_ON:
-                events_variable->currentState = performance;
+                events_variables->currentState = performance;
             break;
             case MQTT_SLEEP:
-                events_variable->currentState = idle;
+                events_variables->currentState = idle;
             break;
             case MQTT_CONFIG:
-                events_variable->currentState = configuration;
+                events_variables->currentState = configuration;
             break;
             case MQTT_DELAY:
                 if(events_variables->currentState == configuration){
