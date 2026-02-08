@@ -1,3 +1,8 @@
+/**
+ * @file communications.c
+ * @brief Implementacion de logica de comunicacion y publicacion MQTT.
+ */
+
 #include "communications.h"
 
 static mqtt_callback callback_private;
