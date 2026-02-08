@@ -65,7 +65,7 @@ void vEventMQTT(void* pvParameters){
             break;
             case MQTT_DELAY:
                 if(currentState == configuration){
-                    const char* json_str = event->data;
+                    const char* json_str = message.data;
                     int delay_receive;
                     int result = json_scanf(json_str, strlen(json_str), "{delay: %d}", &delay_receive);
                     if(result){
