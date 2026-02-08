@@ -20,4 +20,12 @@ esp_err_t gpio_config_intr(uint32_t pin, ISR isr){
     return ESP_OK;
 }
 
+uint32_t gpio_read_pin(uint32_t pin){
+    return gpio_get_level(pin);
+}
+
+void gpio_write_pin(uint32_t pin, uint8_t value){
+    gpio_set_level(pin, value);
+}
+
 
