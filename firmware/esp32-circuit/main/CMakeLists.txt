@@ -5,4 +5,5 @@ idf_component_register(SRCS "main.c"
                     REQUIRES Wifi
                     REQUIRES GPIO
                     REQUIRES Events
+                    REQUIRES Leds
                     )

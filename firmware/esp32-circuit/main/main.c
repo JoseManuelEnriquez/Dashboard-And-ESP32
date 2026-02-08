@@ -13,6 +13,7 @@
 #include "main.h"
 #include "DHT11.h"
 #include "wifi.h"
+#include "leds.h"
 #include "communications.h"
 #include "events.h"
 #include "esp_log.h"
@@ -20,7 +21,12 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+/*
+ Son variables definidas como extern en el main.h para que el modulo Events pueda comunicarse con
+el main.
+*/
 volatile QueueHandle_t queue_event_mqtt = NULL;
+volatile int wifi_connected = 0;
 
 void vControlFSMTask(void* pvParameters)
 {
@@ -49,7 +55,7 @@ void vControlFSMTask(void* pvParameters)
     vTaskDelete(NULL);
 }
 
-void vEventMQTT(void* pvParameters){
+void vEventMQTT_Task(void* pvParameters){
     mqtt_message_t message;
 
     for(;;){
@@ -87,12 +93,46 @@ void vEventMQTT(void* pvParameters){
 
 /**
  * -------------------------------------------------
- * MAIN
+ *                      MAIN
  * -------------------------------------------------
  */
 void app_main(void)
 {
+    // ----- Configuration ----- // 
+
+    /* 
+    Inicializamos la cola necesaria para que la funcion callback definida en events.c pueda despertar
+    la tarea vEventMQTT_Task y recoger los datos provenientes de la subscripcion.
+    */
     queue_event_mqtt = xQueueCreate(10, sizeof(mqtt_message_t));
+    led_err_t err_led = led_init();
+    Button_err_t err_button = buttons_init(callback_buttons);
+    wifi_init_sta(callback_init_wifi);
+    
+    /*
+    Esperamos hasta que la funcion callback definida en events.h, cambie la variable a 1, 
+    indicando que la conexion al punto de acceso ha sido realizada. 
+    
+    Debemos de esperar que tengamos conexion al punto de acceso porque sino no podremos 
+    conectarnos al broker. Es decir, sin cumplir este paso no tendria sentido continuar con 
+    la ejecucion del main y por eso hacemos polling.
+    */
+
+    led_on(CONFIGURATION_LED);
+    led_off(CONNECTED_LED);
+    while(wifi_connected == 0);
+
+    led_on(CONFIGURATION_LED);
+    led_off(CONNECTED_LED);
+
+    mqtt_app_start();
+
+    /*
+    !! OJO !! Pongo por defecto 4096 pero habria que optimizar el valor para no desperdiciar memoria.
+    CAMBIAR EN EL FUTURO
+    */
+    xTaskCreate(vControlFSMTask, "Control estados FSM", 4096, NULL, 6, NULL);
+    xTaskCreate(vEventMQTT_Task, "Task para los eventos MQTT", 4096, NULL, 7, NULL);
 }
 
 
