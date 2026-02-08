@@ -2,8 +2,8 @@
  * @file main.c
  * @author Jose Manuel Enriquez Baena (joseenriquezbaena@gmail.com)
  * @brief Lectura de sensores y publicacion por MQTT
- * @version 1.5
- * @date 20-01-2026
+ * @version 2.0
+ * @date 08-02-2026
  * @copyright Copyright (c) 2026
  * */
 
@@ -22,6 +22,11 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+/* * Referencia interna a la estructura de eventos.
+ * Se inicializa en NULL y debe ser inicializada con get_control_variables().
+ * Permite al main gestionar la dirección de memoria de las variables de control que ofrece events.
+ * Esto es necesario para poder comunicarse con los callbacks pero manteniendo al maximo el encapsulamiento.
+ */
 static gEventStruct* events_variables = NULL;
 
 void vControlFSMTask(void* pvParameters)
@@ -112,17 +117,17 @@ void app_main(void)
     
     events_init();
     events_variables = get_control_variables();
+
     led_err_t err_led = led_init();
     Button_err_t err_button = buttons_init(callback_buttons);
-    wifi_init_sta(callback_init_wifi);
+    wifi_init_sta(callback_init_wifi); 
     
-        /* * BLOQUEO POR DEPENDENCIA DE RED
+    /* * BLOQUEO POR DEPENDENCIA DE RED
     * Se realiza un polling sobre la bandera actualizada por el callback de Wi-Fi (events.h).
     * Esta espera activa es necesaria ya que la conexión al Broker MQTT depende 
     * estrictamente de la obtención previa de una dirección IP. 
     * Se detiene el flujo del main para garantizar la integridad de la secuencia de red.
     */
-
     led_on(CONFIGURATION_LED);
     led_off(CONNECTED_LED);
     while(events_variables->wifi_connected == 0);
@@ -134,7 +139,7 @@ void app_main(void)
 
     /*
     !! OJO !! Pongo por defecto 4096 pero habria que optimizar el valor para no desperdiciar memoria.
-    CAMBIAR EN EL FUTURO
+    CAMBIAR EN EL FUTURO.
     */
     xTaskCreate(vControlFSMTask, "Control estados FSM", 4096, NULL, 6, NULL);
     xTaskCreate(vEventMQTT_Task, "Task para los eventos MQTT", 4096, NULL, 7, NULL);
