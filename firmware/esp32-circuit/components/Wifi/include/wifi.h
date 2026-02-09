@@ -17,7 +17,6 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
-extern const char* TAG_WIFI;
 typedef void(*WifiCallback_t)(int conectado);
 
 void wifi_init_sta(WifiCallback_t callback);
