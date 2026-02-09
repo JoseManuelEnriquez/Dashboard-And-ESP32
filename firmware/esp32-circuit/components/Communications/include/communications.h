@@ -14,7 +14,7 @@
 #include "board_definition.h"
 
 #define MAX_LEN_DEVICE 10
-#define MAX_LEN_TOPIC 64
+#define MAX_LEN_TOPIC 128
 
 /**
  * @brief Estructura que agrupa los datos enviados al topico telemetria

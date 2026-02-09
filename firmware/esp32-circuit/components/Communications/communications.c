@@ -10,7 +10,9 @@ typedef struct{
     char sleep_topic [MAX_LEN_TOPIC];
     char config_topic [MAX_LEN_TOPIC];
     char delay_topic [MAX_LEN_TOPIC];
-    char telemetry_topic [MAX_LEN_TOPIC];
+    char temperature_topic [MAX_LEN_TOPIC];
+    char humidicity_topic [MAX_LEN_TOPIC];
+    char light_topic [MAX_LEN_TOPIC]; 
 }mqtt_topics_t;
 
 static mqtt_topics_t gTopics;
@@ -110,12 +112,14 @@ void comm_init(comm_callback callback, char* device, int id)
     callback_private = callback;
     id_device = id;
 
-    sprintf(gTopics.on_topic, MAX_LEN_TOPIC, "%s/%d/config/ON", device, id);
-    sprintf(gTopics.sleep_topic, MAX_LEN_TOPIC, "%s/%d/config/SLEEP", device, id);
-    sprintf(gTopics.config_topic, MAX_LEN_TOPIC, "%s/%d/config/CONFIG", device, id);
-    sprintf(gTopics.delay_topic, MAX_LEN_TOPIC, "%s/%d/config/DELAY", device, id);
-    sprintf(gTopics.telemetry_topic, MAX_LEN_TOPIC, "%s/%d/telemetry", device, id);
-    
+    snprintf(gTopics.on_topic, MAX_LEN_TOPIC, "%s/%d/config/ON", device, id);
+    snprintf(gTopics.sleep_topic, MAX_LEN_TOPIC, "%s/%d/config/SLEEP", device, id);
+    snprintf(gTopics.config_topic, MAX_LEN_TOPIC, "%s/%d/config/CONFIG", device, id);
+    snprintf(gTopics.delay_topic, MAX_LEN_TOPIC, "%s/%d/config/DELAY", device, id);
+    snprintf(gTopics.temperature_topic, MAX_LEN_TOPIC, "%s/%d/telemetry/temperature", device, id);
+    snprintf(gTopics.humidicity_topic, MAX_LEN_TOPIC, "%s/%d/telemetry/humidicity", device, id);
+    snprintf(gTopics.light_topic, MAX_LEN_TOPIC, "%s/%d/telemetry/light", device, id);
+
     /**
         No se configura id_cliente porque usa por defecto: ESP32_CHIPID% donde CHIPID% son los
         ultimos 3 bytes(hex) de la MAC.
@@ -134,28 +138,17 @@ void comm_init(comm_callback callback, char* device, int id)
 eComm_err comm_send_telemetry(comm_telemetry_t* data){
     char buffer[128];
 
-    char temperature_topic[MAX_LEN_TOPIC];
-    char humidicity_topic[MAX_LEN_TOPIC];
-    char light_topic[MAX_LEN_TOPIC];
-
-    /**
-     * Se debe generar un topico por cada magnitud fisica segun viene especificado en la jerarquia topica
-     */
-    sprintf(temperature_topic, MAX_LEN_TOPIC, "%s/temperature", gTopics.telemetry_topic);
-    sprintf(humidicity_topic, MAX_LEN_TOPIC, "%s/humidicity", gTopics.telemetry_topic);
-    sprintf(light_topic, MAX_LEN_TOPIC, "%s/light", gTopics.telemetry_topic);
-
     struct json_out out_temperature = JSON_OUT_BUF(buffer, sizeof(buffer));
     json_printf(&out_temperature, "{id: %d, temperature: %d, unidad: %s}", id_device, data->temperature, "Celsius");    
-    esp_mqtt_client_publish(client, temperature_topic, buffer, 0, 0, 0);
+    esp_mqtt_client_publish(client,gTopics.temperature_topic, buffer, 0, 0, 0);
     
     struct json_out out_humidicity = JSON_OUT_BUF(buffer, sizeof(buffer));
     json_printf(&out_humidicity, "{id: %d, humidicity: %d, unidad: %s}", id_device, data->humicity, "percentage");
-    esp_mqtt_client_publish(client, humidicity_topic, buffer, 0, 0, 0);
+    esp_mqtt_client_publish(client,gTopics.humidicity_topic, buffer, 0, 0, 0);
 
     struct json_out out_light = JSON_OUT_BUF(buffer, sizeof(buffer));
     json_printf(&out_light, "{id: %d, light: %d, unidad: %s}", id_device, data->light, "bool");
-    esp_mqtt_client_publish(client, light_topic, buffer, 0, 0, 0);
+    esp_mqtt_client_publish(client,gTopics.light_topic, buffer, 0, 0, 0);
 
     return COMM_OK;
 }
