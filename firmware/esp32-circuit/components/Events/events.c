@@ -5,7 +5,7 @@ static gEventStruct gControlVariables;
 void events_init(){
     gControlVariables.wifi_connected = 0;
     gControlVariables.currentState = idle;
-    gControlVariables.queue_event_mqtt = xQueueCreate(10, sizeof(mqtt_message_t));
+    gControlVariables.queue_event_comm = xQueueCreate(10, sizeof(comm_message_t));
 }
 
 void callback_buttons(uint32_t io_num){
@@ -30,8 +30,8 @@ void callback_init_wifi(int conectado){
     }
 }
 
-void callback_event_mqtt(mqtt_message_t message){
-    xQueueSend(gControlVariables.queue_event_mqtt, &message, 0);
+void callback_event_comm(comm_message_t message){
+    xQueueSend(gControlVariables.queue_event_comm, &message, 0);
 }
 
 const gEventStruct* get_control_variables(){

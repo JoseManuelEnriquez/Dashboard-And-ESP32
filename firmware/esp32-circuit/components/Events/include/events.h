@@ -19,7 +19,7 @@ typedef enum
 }State_t;
 
 typedef struct{
-    QueueHandle_t queue_event_mqtt;
+    QueueHandle_t queue_event_comm;
     int wifi_connected;
     State_t currentState;
 }gEventStruct;
@@ -27,7 +27,7 @@ typedef struct{
 void events_init();
 void callback_buttons(uint32_t io_num);
 void callback_init_wifi(int conectado);
-void callback_event_mqtt(mqtt_message_t message);
+void callback_event_comm(comm_message_t message);
 const gEventStruct* get_control_variables();
 
 #endif

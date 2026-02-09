@@ -81,7 +81,7 @@ void app_main(void)
     led_on(CONFIGURATION_LED);
     led_off(CONNECTED_LED);
 
-    comm_init(callback_event_mqtt, DEVICE, ID);
+    comm_init(callback_event_comm, DEVICE, ID);
 
     /*
     !! OJO !! Pongo por defecto 4096 y 2048 pero habria que optimizar el valor para no desperdiciar memoria.
