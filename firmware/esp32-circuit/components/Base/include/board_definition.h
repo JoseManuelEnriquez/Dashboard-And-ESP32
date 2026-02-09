@@ -3,9 +3,9 @@
 
 #include "driver/gpio.h"
 
-#define LED_RED GPIO_NUM_23
-#define LED_GREEN GPIO_NUM_21
-#define LED_YELLOW GPIO_NUM_22
+#define IDLE_LED GPIO_NUM_23
+#define PERFORMANCE_LED GPIO_NUM_21
+#define CONFIG_LED GPIO_NUM_22
 #define CONNECTED_LED GPIO_NUM_17
 #define CONFIGURATION_LED GPIO_NUM_25
 #define CHANGE_BUTTON GPIO_NUM_26
@@ -13,6 +13,7 @@
 #define DHT11_SENSOR GPIO_NUM_14
 #define LDR_SENSOR GPIO_NUM_19
 #define ID 1  
+#define DEVICE "ESP32"
 
 /*
 Hay que definir un delay minimo para la tarea ReadSensor porque el sensor DHT11 no puede hacer dos lecturas consecutivas
