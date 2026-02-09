@@ -13,6 +13,9 @@
 #include "frozen.h" // Libreria necesaria para crear json strings
 #include "board_definition.h"
 
+#define MAX_LEN_DEVICE 10
+#define MAX_LEN_TOPIC 64
+
 /**
  * @brief Estructura que agrupa los datos enviados al topico telemetria
  */
@@ -63,7 +66,7 @@ extern const char* password;
  * @details Configura los parametros necesarios como el broker uri, credenciales, client_id para poder
  * iniciar cliente MQTT y registrar el manejor de eventos MQTT
  */
-void mqtt_app_start(mqtt_callback callback);
+void mqtt_app_start(mqtt_callback callback, char device[MAX_LEN_DEVICE], int id);
 void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
 void publish_data(data_t* data);
 #endif

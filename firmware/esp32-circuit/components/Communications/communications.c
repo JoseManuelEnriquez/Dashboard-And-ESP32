@@ -5,8 +5,19 @@
 
 #include "communications.h"
 
+typedef struct{
+    char on_topic [MAX_LEN_TOPIC];
+    char sleep_topic [MAX_LEN_TOPIC];
+    char config_topic [MAX_LEN_TOPIC];
+    char delay_topic [MAX_LEN_TOPIC];
+    char telemetry_topic [MAX_LEN_TOPIC];
+}mqtt_topics_t;
+
+static mqtt_topics_t gTopics;
+static int id_device;
 static mqtt_callback callback_private;
 static esp_mqtt_client_handle_t client; // client debe ser global para poder publicar desde publish_data()
+
 const static char* TAG_MQTT = "MQTT";
 const static char* broker_uri = CONFIG_BROKER_URI;
 const static char* username = CONFIG_USERNAME;
@@ -20,7 +31,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_BEFORE_CONNECT:
-        ESP_LOGI(TAG_MQTT, "MQTT_EVENT_BEFORE_CONNECT");
+        ESP_LOGI(TAG_MQTT, "MQTT_EVENT_BIDEFORE_CONNECT");
         break;
     case MQTT_EVENT_CONNECTED: 
         msg_id = esp_mqtt_client_subscribe(client, "ESP32/1/config/ON", 0);
@@ -61,22 +72,22 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         */
         ESP_LOGI(TAG_MQTT, "TOPIC: %.*s", event->topic_len, event->topic);
         mqtt_message_t message;
-        if(strcmp(topic, "ESP32/1/config/ON") == 0)
+        if(strcmp(topic, gTopics.on_topic) == 0)
         {
             message.topic = MQTT_ON;
             message.status = MQTT_OK;
             callback_private(message);
-        }else if(strcmp(topic, "ESP32/1/config/CONFIG") == 0)
+        }else if(strcmp(topic, gTopics.config_topic) == 0)
         {
             message.topic = MQTT_CONFIG;
             message.status = MQTT_OK;
             callback_private(message);
-        }else if(strcmp(topic, "ESP32/1/config/SLEEP") == 0)
+        }else if(strcmp(topic, gTopics.sleep_topic) == 0)
         {
             message.topic = MQTT_SLEEP;
             message.status = MQTT_OK;
             callback_private(message);
-        }else if(strcmp(topic, "ESP32/1/config/delay") == 0)
+        }else if(strcmp(topic, gTopics.delay_topic) == 0)
         {
             message.topic = MQTT_DELAY;
             message.status = MQTT_OK;
@@ -94,20 +105,24 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     }
 }
 
-void mqtt_app_start(mqtt_callback callback)
+void mqtt_app_start(mqtt_callback callback, char device[MAX_LEN_DEVICE], int id)
 {
     callback_private = callback;
-    /*
+    id_device = id;
+
+    sprintf(gTopics.on_topic, MAX_LEN_TOPIC, "%s/%d/ON", device, id);
+    sprintf(gTopics.sleep_topic, MAX_LEN_TOPIC, "%s/%d/SLEEP", device, id);
+    sprintf(gTopics.config_topic, MAX_LEN_TOPIC, "%s/%d/CONFIG", device, id);
+    sprintf(gTopics.delay_topic, MAX_LEN_TOPIC, "%s/%d/DELAY", device, id);
+    sprintf(gTopics.telemetry_topic, MAX_LEN_TOPIC, "%s/%d/telemetry", device, id);
+    
+    /**
         No se configura id_cliente porque usa por defecto: ESP32_CHIPID% donde CHIPID% son los
         ultimos 3 bytes(hex) de la MAC.
-        
-        !! OJO: Por ahora dejar configuracion por defecto los campos network_t, buffer_t, session_t, topic_t
-        session_t y topic_t es para Lass_will o ultima voluntad
     */
     esp_mqtt_client_config_t mqtt_conf = {
         .broker.address.uri = broker_uri,
         .credentials.username = username,
-        .credentials.client_id = "ESP32",
         .credentials.authentication.password = password
     };
     client = esp_mqtt_client_init(&mqtt_conf);
@@ -132,14 +147,18 @@ void publish_data(data_t* data)
     */
     char buffer[128];
     struct json_out out_temperature = JSON_OUT_BUF(buffer, sizeof(buffer));
-    json_printf(&out_temperature, "{id: %d, temperature: %d, unidad: %s}", ID, data->temperature, "Celsius");
+    json_printf(&out_temperature, "{id: %d, temperature: %d, unidad: %s}", id_device, data->temperature, "Celsius");
+    
+    char topic_temperature[MAX_LEN_TOPIC];
+    sprintf(topic_temperature, MAX_LEN_TOPIC, "%s/temperature", gTopics.telemetry_topic);
+    
     esp_mqtt_client_publish(client, "ESP32/1/telemetry/temperature", buffer, 0, 0, 0);
     
     struct json_out out_humidicity = JSON_OUT_BUF(buffer, sizeof(buffer));
-    json_printf(&out_humidicity, "{id: %d, humidicity: %d, unidad: %s}", ID, data->humicity, "percentage");
+    json_printf(&out_humidicity, "{id: %d, humidicity: %d, unidad: %s}", id_device, data->humicity, "percentage");
     esp_mqtt_client_publish(client, "ESP32/1/telemetry/humidicity", buffer, 0, 0, 0);
 
     struct json_out out_light = JSON_OUT_BUF(buffer, sizeof(buffer));
-    json_printf(&out_light, "{id: %d, light: %d, unidad: %s}", ID, data->light, "bool");
+    json_printf(&out_light, "{id: %d, light: %d, unidad: %s}", id_device, data->light, "bool");
     esp_mqtt_client_publish(client, "ESP32/1/telemetry/light", buffer, 0, 0, 0);
 }
