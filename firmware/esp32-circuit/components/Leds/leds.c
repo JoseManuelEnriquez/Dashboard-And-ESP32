@@ -2,7 +2,7 @@
 
 led_err_t led_init(){
     esp_err_t err;
-    uint32_t bitmask = (1ULL << LED_RED | 1ULL << LED_GREEN | 1ULL<< LED_YELLOW | 1ULL << CONNECTED_LED | 1ULL << CONFIGURATION_LED);
+    uint32_t bitmask = (1ULL << IDLE_LED | 1ULL << PERFORMANCE_LED | 1ULL<< CONFIG_LED | 1ULL << CONNECTED_LED | 1ULL << CONFIGURATION_LED);
     err = gpio_init(GPIO_INTR_DISABLE, GPIO_MODE_OUTPUT, bitmask, GPIO_PULLUP_DISABLE, GPIO_PULLDOWN_DISABLE);
     return (err == ESP_OK) ? LED_OK : LED_ERR_INVALID;
 }
