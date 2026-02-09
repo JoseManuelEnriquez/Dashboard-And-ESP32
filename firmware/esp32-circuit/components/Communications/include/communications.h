@@ -60,6 +60,6 @@ typedef void(*comm_callback)(comm_message_t message);
  * @details Configura los parametros necesarios como el broker uri, credenciales, client_id para poder
  * iniciar cliente MQTT y registrar el manejor de eventos MQTT
  */
-void comm_init(comm_callback callback, char device[MAX_LEN_DEVICE], int id);
+void comm_init(comm_callback callback, char* device, int id);
 eComm_err comm_send_telemetry(comm_telemetry_t* data);
 #endif

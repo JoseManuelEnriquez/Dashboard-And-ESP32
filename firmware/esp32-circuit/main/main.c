@@ -33,7 +33,7 @@ static int delay = MIN_DELAY;
  * Creacion de tareas para controlar el main
  */
 void vSensorsTask(void* pvParameters);
-void vvControlFSMTask(void* pvParameters);
+void vControlFSMTask(void* pvParameters);
 void vEventMQTT_Task(void* pvParameters);
 
 /**
@@ -80,8 +80,8 @@ void app_main(void)
 
     led_on(CONFIGURATION_LED);
     led_off(CONNECTED_LED);
-
-    comm_init(callback_event_comm, DEVICE, ID);
+    char* device = DEVICE;
+    comm_init(callback_event_comm, device, ID);
 
     /*
     !! OJO !! Pongo por defecto 4096 y 2048 pero habria que optimizar el valor para no desperdiciar memoria.
@@ -156,7 +156,7 @@ void vEventMQTT_Task(void* pvParameters){
     comm_message_t message;
 
     for(;;){
-        xQueueReceive(events_variables->queue_event_mqtt, &message, portMAX_DELAY);
+        xQueueReceive(events_variables->queue_event_comm, &message, portMAX_DELAY);
         switch (message.message_type)
         {
             case ON:

@@ -105,7 +105,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     }
 }
 
-void comm_init(comm_callback callback, char device[MAX_LEN_DEVICE], int id)
+void comm_init(comm_callback callback, char* device, int id)
 {
     callback_private = callback;
     id_device = id;
