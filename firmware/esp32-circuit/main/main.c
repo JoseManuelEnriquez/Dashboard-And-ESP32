@@ -178,11 +178,12 @@ void vEventMQTT_Task(void* pvParameters){
                     int result = json_scanf(json_str, strlen(json_str), "{delay: %d}", &delay_receive);
                     if(result){
                         delay = delay_receive;
-                    }else{
-                        // Publicar error
+                        if(delay_receive < MIN_DELAY){
+                            comm_send_error(INVALID_DELAY);
+                        }
                     }
                 }else{
-                    // Publicar error
+                    comm_send_error(INVALID_STATE);
                 }
             break;
             default:
