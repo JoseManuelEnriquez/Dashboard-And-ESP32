@@ -61,11 +61,14 @@ void app_main(void)
     
     events_init();
     events_variables = get_control_variables();
-
+    /*
     eSensor_error sensor_err = sensors_init();
 
-    led_err_t err_led = led_init();
     Button_err_t err_button = buttons_init(callback_buttons);
+    */
+    led_err_t err_led = led_init();
+    led_on(CONFIGURATION_LED);
+    led_off(CONNECTED_LED);
     wifi_init_sta(callback_init_wifi); 
     
     /* * BLOQUEO POR DEPENDENCIA DE RED
@@ -74,22 +77,24 @@ void app_main(void)
     * estrictamente de la obtención previa de una dirección IP. 
     * Se detiene el flujo del main para garantizar la integridad de la secuencia de red.
     */
-    led_on(CONFIGURATION_LED);
-    led_off(CONNECTED_LED);
+    
     while(events_variables->wifi_connected == 0);
 
-    led_on(CONFIGURATION_LED);
-    led_off(CONNECTED_LED);
+    led_on(CONNECTED_LED);
+    led_off(CONFIGURATION_LED);
+    
     char* device = DEVICE;
     comm_init(callback_event_comm, device, ID);
 
+    // xTaskCreate(vControlFSMTask, "Control estados FSM", 4096, NULL, 6, NULL);
+    // xTaskCreate(vEventMQTT_Task, "Task para los eventos de comm", 4096, NULL, 7, NULL);
     /*
     !! OJO !! Pongo por defecto 4096 y 2048 pero habria que optimizar el valor para no desperdiciar memoria.
     CAMBIAR EN EL FUTURO.
     */
-    xTaskCreate(vControlFSMTask, "Control estados FSM", 4096, NULL, 6, NULL);
+    /*
     xTaskCreate(vSensorsTask, "Task read sensor", 2048, NULL, 6, NULL);
-    xTaskCreate(vEventMQTT_Task, "Task para los eventos de comm", 4096, NULL, 7, NULL);
+    */
 }
 
 void vSensorsTask(void* pvParameters){
@@ -156,31 +161,6 @@ void vEventMQTT_Task(void* pvParameters){
     comm_message_t message;
 
     for(;;){
-<<<<<<< HEAD
-        switch(currentState){
-            case performance:
-            //err = dht11_read(DHT11_SENSOR, &humicity_int, &humicity_dec, &temperature_int, &temperature_dec);
-            err = ESP_OK;
-            humicity_int = 60;
-            temperature_int = 18;
-            if(err == ESP_OK){
-                data.light = gpio_get_level(LDR_SENSOR);
-                data.humicity = humicity_int;
-                data.temperature = temperature_int;
-                if(mqtt_connected == 1)
-                    publish_data(&data);                
-            }else{
-                switch (err)
-                {
-                case ESP_ERR_INVALID_ARG: ESP_LOGE(TAG_SENSOR, "ESP_ERR_INVALID_ARG");
-                break;
-                case ESP_ERR_INVALID_CRC: ESP_LOGE(TAG_SENSOR, "ESP_ERR_INVALID_CRC");
-                break;
-                case ESP_ERR_TIMEOUT: ESP_LOGE(TAG_SENSOR, "ESP_ERR_TIMEOUT");
-                break;
-                default:
-                    break;
-=======
         xQueueReceive(events_variables->queue_event_comm, &message, portMAX_DELAY);
         switch (message.message_type)
         {
@@ -205,7 +185,6 @@ void vEventMQTT_Task(void* pvParameters){
                     }
                 }else{
                     // Publicar error
->>>>>>> develop
                 }
             break;
             default:

@@ -2,7 +2,7 @@
 
 static EventGroupHandle_t s_wifi_event_group;
 static WifiCallback_t callback_private = NULL;
-static int s_retry_num;
+static int s_retry_num = 0;
 const static char *TAG_WIFI = "WIFI";
 
 void wifi_init_sta(WifiCallback_t callback)
@@ -40,6 +40,7 @@ void wifi_init_sta(WifiCallback_t callback)
             .threshold.authmode = WIFI_AUTH_WPA2_PSK
         },
     };
+    ESP_LOGI(TAG_WIFI, "TRYING CONNECT: %s", CONFIG_WIFI_SSID);
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
