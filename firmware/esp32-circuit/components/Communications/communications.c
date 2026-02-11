@@ -13,6 +13,7 @@ typedef struct{
     char temperature_topic [MAX_LEN_TOPIC];
     char humidicity_topic [MAX_LEN_TOPIC];
     char light_topic [MAX_LEN_TOPIC]; 
+    char error_topic [MAX_LEN_TOPIC];
 }mqtt_topics_t;
 
 static mqtt_topics_t gTopics;
@@ -119,7 +120,7 @@ void comm_init(comm_callback callback, char* device, int id)
     snprintf(gTopics.temperature_topic, MAX_LEN_TOPIC, "%s/%d/telemetry/temperature", device, id);
     snprintf(gTopics.humidicity_topic, MAX_LEN_TOPIC, "%s/%d/telemetry/humidicity", device, id);
     snprintf(gTopics.light_topic, MAX_LEN_TOPIC, "%s/%d/telemetry/light", device, id);
-
+    snprintf(gTopics.error_topic, MAX_LEN_DEVICE, "%s/%d/error", device, id);
     /**
         No se configura id_cliente porque usa por defecto: ESP32_CHIPID% donde CHIPID% son los
         ultimos 3 bytes(hex) de la MAC.
@@ -149,6 +150,26 @@ eComm_err comm_send_telemetry(comm_telemetry_t* data){
     struct json_out out_light = JSON_OUT_BUF(buffer, sizeof(buffer));
     json_printf(&out_light, "{id: %d, light: %d, unidad: %s}", id_device, data->light, "bool");
     esp_mqtt_client_publish(client,gTopics.light_topic, buffer, 0, 0, 0);
+
+    return COMM_OK;
+}
+
+eComm_error_type publish_send_error(eComm_error_type error){
+    char buffer[128];
+    struct json_out out = JSON_OUT_BUF(buffer, sizeof(buffer));
+    
+    switch (error)
+    {
+    case INVALID_STATE:
+        json_printf(&out, "{id: %d, error: INVALID_STATE}", id_device);
+        esp_mqtt_client_publish(client,gTopics.error_topic, buffer, 0, 0, 0);
+        break;
+    case INVALID_DELAY:
+        json_printf(&out, "{id: %d, error: INVALID_DELAY}", id_device);
+        esp_mqtt_client_publish(client,gTopics.error_topic, buffer, 0, 0, 0);
+    default:
+        break;
+    }
 
     return COMM_OK;
 }

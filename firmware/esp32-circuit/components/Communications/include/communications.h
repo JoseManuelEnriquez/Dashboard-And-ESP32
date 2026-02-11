@@ -44,6 +44,14 @@ typedef enum{
 }eComm_message_type;
 
 /**
+ * @brief Errores que puede publicar el cliente 
+ */
+typedef enum{
+    INVALID_STATE,
+    INVALID_DELAY,
+}eComm_error_type;
+
+/**
  *  @brief Estructura que define que tipo de mensaje que recibe por parametros la callback
  */
 typedef struct{
@@ -62,4 +70,5 @@ typedef void(*comm_callback)(comm_message_t message);
  */
 void comm_init(comm_callback callback, char* device, int id);
 eComm_err comm_send_telemetry(comm_telemetry_t* data);
+eComm_err comm_send_error(eComm_error_type error);
 #endif
