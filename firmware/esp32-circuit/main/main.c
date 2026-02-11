@@ -63,9 +63,10 @@ void app_main(void)
     events_variables = get_control_variables();
     /*
     eSensor_error sensor_err = sensors_init();
-
-    Button_err_t err_button = buttons_init(callback_buttons);
     */
+   
+    Button_err_t err_button = buttons_init(callback_buttons);
+    
     led_err_t err_led = led_init();
     led_on(CONFIGURATION_LED);
     led_off(CONNECTED_LED);
@@ -86,8 +87,8 @@ void app_main(void)
     char* device = DEVICE;
     comm_init(callback_event_comm, device, ID);
 
-    // xTaskCreate(vControlFSMTask, "Control estados FSM", 4096, NULL, 6, NULL);
-    // xTaskCreate(vEventMQTT_Task, "Task para los eventos de comm", 4096, NULL, 7, NULL);
+    xTaskCreate(vControlFSMTask, "Control estados FSM", 4096, NULL, 6, NULL);
+    xTaskCreate(vEventMQTT_Task, "Task para los eventos de comm", 4096, NULL, 7, NULL);
     /*
     !! OJO !! Pongo por defecto 4096 y 2048 pero habria que optimizar el valor para no desperdiciar memoria.
     CAMBIAR EN EL FUTURO.

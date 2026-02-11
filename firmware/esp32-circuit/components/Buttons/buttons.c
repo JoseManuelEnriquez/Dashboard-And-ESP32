@@ -56,8 +56,8 @@ Button_err_t buttons_init(button_callback callback){
     esp_err_t err_intr_change = gpio_config_intr(CHANGE_BUTTON, gpio_isr_change_button_handler);
     esp_err_t err_intr_off = gpio_config_intr(OFF_BUTTON, gpio_isr_off_button_handler);
     
-    xTaskCreate(vButtonISRTask,"ButtonISR", 4096, NULL, 7, NULL);
     isr_handler_queue = xQueueCreate(10, sizeof(uint32_t));
+    xTaskCreate(vButtonISRTask,"ButtonISR", 4096, NULL, 7, NULL);
     return (err_init == ESP_OK && err_intr_change == ESP_OK && err_intr_off == ESP_OK) ? BUTTON_OK : BUTTON_ERR_INVALID;
 }
 
