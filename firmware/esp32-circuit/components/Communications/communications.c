@@ -154,7 +154,7 @@ eComm_err comm_send_telemetry(comm_telemetry_t* data){
     return COMM_OK;
 }
 
-eComm_error_type publish_send_error(eComm_error_type error){
+eComm_error_type comm_send_error(eComm_error_type error){
     char buffer[128];
     struct json_out out = JSON_OUT_BUF(buffer, sizeof(buffer));
     
